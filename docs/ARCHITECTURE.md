@@ -100,12 +100,14 @@ Não há sincronização assíncrona entre múltiplas fontes de verdade para a c
 
 A API usa:
 
-- `200` para resultado final persistido
+- `200` para `SUCCESS` persistido
+- `503` para `FAILED` persistido
 - `202` para `PENDING` após timeout de polling
 
 Detalhe importante:
 
-- `200 SUCCESS` e `200 FAILED` existem porque o contrato principal é devolver exatamente o resultado final já persistido para aquela chave
+- o contrato principal continua sendo devolver exatamente o status HTTP e o body final já persistidos para aquela chave
+- usar `503` para falha persistida deixa mais claro que o estado final salvo representa indisponibilidade temporária do processamento
 - `202` representa apenas um estado transitório ainda não finalizado
 
 ## Estratégia de polling para `PENDING`

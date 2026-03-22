@@ -15,6 +15,8 @@ Stack principal:
 
 O objetivo central é garantir que múltiplas tentativas com a mesma `Idempotency-Key` retornem exatamente a mesma resposta persistida, sem processamento duplicado.
 
+Para uma visão executiva ainda mais curta, consulte [docs/SUMMARY.md](docs/SUMMARY.md).
+
 ## Como rodar localmente
 
 Instale as dependências:
@@ -45,6 +47,7 @@ pnpm frontend
 pnpm db:setup
 pnpm db:down
 pnpm db:logs
+pnpm lint
 ```
 
 Endereços locais:
@@ -73,7 +76,7 @@ Os pontos principais a observar são:
 - a mesma `Idempotency-Key` sempre reaproveita o mesmo resultado persistido
 - requests concorrentes com a mesma chave não duplicam processamento
 - sucesso e falha são persistidos e reaproveitados
-- `200` representa estado final persistido e `202` representa `PENDING` transitório
+- `200` representa `SUCCESS` persistido, `503` representa `FAILED` persistido e `202` representa `PENDING` transitório
 
 ## Como configurar Neon
 
@@ -134,7 +137,8 @@ wait
 
 Contrato esperado:
 
-- `200` para resultado final persistido, inclusive falha
+- `200` para `SUCCESS` persistido
+- `503` para `FAILED` persistido
 - `202` quando a chave já existe, o registro ainda está em `PENDING` e o polling curto não encontrou estado final
 
 ## Testes
@@ -157,6 +161,12 @@ Os testes de integração:
 - verificam estado persistido no banco
 - provam que apenas uma request vence o processamento
 - cobrem retry após sucesso, retry após falha e comportamento durante `PENDING`
+
+Verificação estática:
+
+```bash
+pnpm lint
+```
 
 ## Deploy
 
@@ -193,13 +203,13 @@ Decisões intencionais desta solução:
 Trade-offs aceitos:
 
 - polling curto em vez de mecanismo mais sofisticado de notificação
-- `200` para falha persistida, porque o contrato relevante é “repetir exatamente o resultado final já salvo”
+- `503` para falha persistida, mantendo o replay exato do status HTTP e do body final salvo
 - setup de deploy manual via painel, sem automação extra
 
 ## Melhorias futuras
 
 - retenção de `Idempotency-Key` por janela configurável, por exemplo `24h`
 - rejeição explícita e auditável para payload divergente com mesma chave
-- CI para build, testes e lint
+- CI para build, lint e testes
 - observabilidade mais forte em produção
 - fila ou worker separado apenas se houver necessidade real de throughput ou integração externa

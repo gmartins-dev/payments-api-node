@@ -5,10 +5,10 @@ import { logger } from './config/logger.js'
 const app = createApp()
 
 app.listen(env.PORT, () => {
-  logger.info(
-    {
-      port: env.PORT
-    },
-    'Backend server started'
-  )
+	logger.info(
+		{
+			port: env.PORT,
+		},
+		'Backend server started',
+	)
 })

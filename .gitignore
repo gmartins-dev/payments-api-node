@@ -27,3 +27,4 @@ yarn-error.log*
 # Local planning artifacts
 PLAN.md
 CODEX_PROMPTS.md
+docs/CODEX_PROMPTS.md

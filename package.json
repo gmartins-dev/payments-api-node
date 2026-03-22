@@ -1,25 +1,30 @@
 {
-  "name": "payments-idempotency",
-  "private": true,
-  "packageManager": "pnpm@10.32.1",
-  "engines": {
-    "node": ">=24.0.0"
-  },
-  "scripts": {
-    "dev:full": "pnpm db:setup && pnpm dev",
-    "dev": "pnpm -r --parallel --filter backend --filter frontend dev",
-    "backend": "pnpm --filter backend dev",
-    "frontend": "pnpm --filter frontend dev",
-    "db:up": "docker compose up -d postgres",
-    "db:wait": "sh -c 'until pg_isready -h localhost -p 5432 -U postgres -d payments; do sleep 1; done'",
-    "db:setup": "pnpm db:up && pnpm db:wait && pnpm db:migrate && pnpm db:migrate:test",
-    "db:down": "docker compose down -v",
-    "db:logs": "docker compose logs -f postgres",
-    "db:migrate": "pnpm --filter backend db:migrate",
-    "db:migrate:test": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/payments_test pnpm --filter backend db:migrate",
-    "build": "pnpm -r build",
-    "test": "pnpm --filter backend test",
-    "test:unit": "pnpm --filter backend test:unit",
-    "test:integration": "pnpm --filter backend test:integration"
-  }
+	"name": "payments-idempotency",
+	"private": true,
+	"packageManager": "pnpm@10.32.1",
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"scripts": {
+		"dev:full": "pnpm db:setup && pnpm dev",
+		"dev": "pnpm -r --parallel --filter backend --filter frontend dev",
+		"backend": "pnpm --filter backend dev",
+		"frontend": "pnpm --filter frontend dev",
+		"db:up": "docker compose up -d postgres",
+		"db:wait": "sh -c 'until pg_isready -h localhost -p 5432 -U postgres -d payments; do sleep 1; done'",
+		"db:setup": "pnpm db:up && pnpm db:wait && pnpm db:migrate && pnpm db:migrate:test",
+		"db:down": "docker compose down -v",
+		"db:logs": "docker compose logs -f postgres",
+		"db:migrate": "pnpm --filter backend db:migrate",
+		"db:migrate:test": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/payments_test pnpm --filter backend db:migrate",
+		"build": "pnpm -r build",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"test": "pnpm --filter backend test",
+		"test:unit": "pnpm --filter backend test:unit",
+		"test:integration": "pnpm --filter backend test:integration"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.8"
+	}
 }
