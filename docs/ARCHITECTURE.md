@@ -104,6 +104,24 @@ Esse desenho permite:
 - provar replay de sucesso e falha
 - manter previsibilidade em testes por meio de injeção de configuração
 
+## Observabilidade e contexto de request
+
+O backend usa `pino` e `pino-http` para manter logs estruturados.
+
+Cada request recebe:
+
+- `requestId`, reaproveitado do header quando existir ou gerado no middleware
+- `idempotencyKey`, quando enviada pelo cliente
+
+Esses valores ficam disponíveis em `res.locals`, aparecem no logging HTTP e também são usados pelo tratamento centralizado de erros.
+
+A ordem de middleware é:
+
+1. contexto de request
+2. logging HTTP
+3. rotas
+4. tratamento centralizado de erro
+
 ## Papel do Redis
 
 Redis pode existir como melhoria opcional, mas não como base da correção.

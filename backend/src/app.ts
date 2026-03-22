@@ -27,6 +27,10 @@ export function createApp(dependencies: AppDependencies = {}) {
   app.use(
     pinoHttp({
       logger,
+      genReqId: (_req, res) => res.locals.requestId,
+      customReceivedMessage: () => 'request received',
+      customSuccessMessage: () => 'request completed',
+      customErrorMessage: () => 'request failed',
       customProps: (_req: Request, res: Response) => ({
         requestId: res.locals.requestId,
         idempotencyKey: res.locals.idempotencyKey

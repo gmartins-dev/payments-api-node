@@ -141,6 +141,22 @@ O módulo foi preparado para testes determinísticos por configuração de:
 - função aleatória
 - função de espera
 
+## Observabilidade
+
+O backend usa:
+
+- `pino` como logger base
+- `pino-http` para logs por request
+- `requestId` em `res.locals` e no header `X-Request-Id`
+- `idempotencyKey` anexada ao contexto sempre que presente
+
+Isso permite correlacionar:
+
+- request recebida
+- processamento da rota
+- erro tratado
+- resposta final
+
 ## Como rodar localmente
 
 Instalar as dependências:
