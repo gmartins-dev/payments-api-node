@@ -1,6 +1,6 @@
 import { ConflictError, NotFoundError } from '../../shared/http-errors.js'
 import { sleep } from '../../shared/sleep.js'
-import { PaymentProcessor } from './payment-processor.js'
+import { PaymentProcessor, PaymentProcessorTemporaryError } from './payment-processor.js'
 import { PaymentsRepository } from './payments.repository.js'
 import type { CreatePaymentInput, PaymentApiResponse, PaymentPendingResponse, PaymentRow, PersistedPaymentResponse } from './payment.types.js'
 
@@ -140,6 +140,10 @@ function isPersistedPaymentResponse(value: unknown): value is PersistedPaymentRe
 }
 
 function extractFailureReason(error: unknown) {
+  if (error instanceof PaymentProcessorTemporaryError) {
+    return error.code
+  }
+
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message
   }

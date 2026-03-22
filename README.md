@@ -119,6 +119,28 @@ Nota de produção:
 - o reuso da mesma `Idempotency-Key` com payload diferente deve ser rejeitado
 - uma janela de retenção da chave, por exemplo `24h`, pode ser aplicada em ambiente produtivo
 
+## Processador simulado
+
+O backend agora usa um processador simulado para demonstrar comportamento assíncrono e falha intermitente.
+
+Comportamento padrão:
+
+- delay variável entre `1500ms` e `4000ms`
+- probabilidade de falha de `30%`
+- sucesso retorna:
+  - `paymentId`
+  - `status: "SUCCESS"`
+  - `amount`
+  - `customerId`
+- falha lança um erro tipado com motivo `PROCESSOR_TEMPORARY_ERROR`
+
+O módulo foi preparado para testes determinísticos por configuração de:
+
+- faixa de delay
+- taxa de falha
+- função aleatória
+- função de espera
+
 ## Como rodar localmente
 
 Instalar as dependências:

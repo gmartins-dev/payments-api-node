@@ -90,6 +90,20 @@ Nota de produção:
 - reuso da mesma `Idempotency-Key` com payload divergente deve ser rejeitado
 - uma janela de retenção da chave, por exemplo `24h`, pode ser aplicada fora do escopo do MVP
 
+## Processador simulado
+
+Para demonstrar o fluxo de pagamento sem depender de um provedor externo real, o projeto usa um processador simulado com:
+
+- tempo variável entre `1500ms` e `4000ms`
+- chance de falha configurável, com padrão de `30%`
+- erro tipado para falha temporária do processador
+
+Esse desenho permite:
+
+- demonstrar o comportamento de `PENDING`
+- provar replay de sucesso e falha
+- manter previsibilidade em testes por meio de injeção de configuração
+
 ## Papel do Redis
 
 Redis pode existir como melhoria opcional, mas não como base da correção.

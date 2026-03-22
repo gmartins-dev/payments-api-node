@@ -48,3 +48,11 @@ export interface PaymentPendingResponse extends JsonObject {
 
 export type PersistedPaymentResponse = PaymentSuccessResponse | PaymentFailedResponse
 export type PaymentApiResponse = PersistedPaymentResponse | PaymentPendingResponse
+
+export interface PaymentProcessorConfig {
+  minDelayMs?: number
+  maxDelayMs?: number
+  failureRate?: number
+  randomFn?: () => number
+  sleepFn?: (delayMs: number) => Promise<void>
+}
