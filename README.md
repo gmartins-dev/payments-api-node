@@ -59,6 +59,22 @@ Health check:
 curl http://localhost:3000/health
 ```
 
+## Como avaliar rapidamente
+
+Se o objetivo for validar o projeto com o menor esforço possível, este é o roteiro mais direto:
+
+1. rodar `pnpm dev:full`
+2. abrir `http://localhost:5173` para testar a interface
+3. abrir `http://localhost:3000/docs` para conferir o contrato da API
+4. rodar `pnpm test:integration` para validar a prova forte de idempotência e concorrência
+
+Os pontos principais a observar são:
+
+- a mesma `Idempotency-Key` sempre reaproveita o mesmo resultado persistido
+- requests concorrentes com a mesma chave não duplicam processamento
+- sucesso e falha são persistidos e reaproveitados
+- `200` representa estado final persistido e `202` representa `PENDING` transitório
+
 ## Como configurar Neon
 
 O deploy principal recomendado para este teste continua sendo Render para backend e Postgres, mas Neon pode ser usado sem mudar a lógica da aplicação.
