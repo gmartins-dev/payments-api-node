@@ -124,6 +124,20 @@ A ordem de middleware é:
 3. rotas
 4. tratamento centralizado de erro
 
+## Documentação da API
+
+O backend também expõe documentação OpenAPI 3 via Swagger UI em `GET /docs`.
+
+Esse endpoint documenta:
+
+- `GET /health`
+- `POST /payments`
+- contratos de request e response
+- diferença entre `200` final persistido e `202 PENDING`
+- garantias de idempotência e comportamento em concorrência
+
+O objetivo aqui é manter a API autoexplicativa sem introduzir camadas extras além de `swagger-jsdoc` e `swagger-ui-express`.
+
 ## Estratégia de testes
 
 Os testes automatizados do backend cobrem o fluxo HTTP completo de `POST /payments` com verificação de estado persistido.

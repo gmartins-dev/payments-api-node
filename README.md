@@ -217,6 +217,28 @@ Isso permite correlacionar:
 - erro tratado
 - resposta final
 
+## Documentação da API
+
+A API expõe documentação OpenAPI 3 com Swagger UI em:
+
+```text
+GET /docs
+```
+
+Em ambiente local, depois de subir o backend, acesse:
+
+```text
+http://localhost:3000/docs
+```
+
+Essa documentação cobre:
+
+- `GET /health`
+- `POST /payments`
+- header `Idempotency-Key`
+- contratos de `200 SUCCESS`, `200 FAILED` e `202 PENDING`
+- comportamento idempotente em retries e concorrência
+
 ## Frontend de demonstração
 
 O frontend foi desenhado para mostrar o comportamento do backend sem adicionar estado global ou infraestrutura extra.
@@ -283,6 +305,7 @@ Endereços esperados:
 
 - frontend: `http://localhost:5173`
 - backend: `http://localhost:3000`
+- Swagger UI: `http://localhost:3000/docs`
 
 Teste rápido do backend:
 

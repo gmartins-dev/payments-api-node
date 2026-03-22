@@ -5,6 +5,7 @@ import type { Request, Response } from 'express'
 
 import { env } from './config/env.js'
 import { logger } from './config/logger.js'
+import { registerSwagger } from './config/swagger.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { requestContext } from './middlewares/requestContext.js'
 import { registerRoutes } from './shared/http.js'
@@ -38,6 +39,7 @@ export function createApp(dependencies: AppDependencies = {}) {
     })
   )
 
+  registerSwagger(app)
   registerRoutes(app, {
     paymentsController: dependencies.paymentsController
   })

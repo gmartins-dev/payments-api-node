@@ -9,6 +9,24 @@ interface RouteDependencies {
 }
 
 export function registerRoutes(app: Express, dependencies: RouteDependencies = {}) {
+  /**
+   * @openapi
+   * /health:
+   *   get:
+   *     tags:
+   *       - Health
+   *     summary: Health check
+   *     description: Returns a simple operational status for the API.
+   *     responses:
+   *       '200':
+   *         description: The API is running.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/HealthResponse'
+   *             example:
+   *               status: ok
+   */
   app.get('/health', (_req, res) => {
     res.status(200).json({
       status: 'ok'
