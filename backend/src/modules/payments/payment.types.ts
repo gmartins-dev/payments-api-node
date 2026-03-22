@@ -22,13 +22,29 @@ export interface InsertPendingPaymentInput extends CreatePaymentInput {
   idempotencyKey: string
 }
 
-export interface PaymentsScaffoldResponse {
-  message: string
-  idempotencyKey?: string
-}
-
 export type JsonPrimitive = string | number | boolean | null
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[]
 export interface JsonObject {
   [key: string]: JsonValue
 }
+
+export interface PaymentSuccessResponse extends JsonObject {
+  paymentId: string
+  status: 'SUCCESS'
+  amount: number
+  customerId: string
+}
+
+export interface PaymentFailedResponse extends JsonObject {
+  paymentId: string
+  status: 'FAILED'
+  reason: string
+}
+
+export interface PaymentPendingResponse extends JsonObject {
+  paymentId: string
+  status: 'PENDING'
+}
+
+export type PersistedPaymentResponse = PaymentSuccessResponse | PaymentFailedResponse
+export type PaymentApiResponse = PersistedPaymentResponse | PaymentPendingResponse

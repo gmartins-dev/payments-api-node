@@ -8,8 +8,13 @@ import { logger } from './config/logger.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { requestContext } from './middlewares/requestContext.js'
 import { registerRoutes } from './shared/http.js'
+import type { PaymentsController } from './modules/payments/payments.controller.js'
 
-export function createApp() {
+interface AppDependencies {
+  paymentsController?: PaymentsController
+}
+
+export function createApp(dependencies: AppDependencies = {}) {
   const app = express()
 
   app.use(
@@ -29,7 +34,9 @@ export function createApp() {
     })
   )
 
-  registerRoutes(app)
+  registerRoutes(app, {
+    paymentsController: dependencies.paymentsController
+  })
   app.use(errorHandler)
 
   return app

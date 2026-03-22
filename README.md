@@ -97,6 +97,28 @@ Os arquivos SQL de migração ficam em:
 
 Nesta etapa, `updated_at` fica garantido por trigger no banco. Isso reduz o risco de inconsistência entre diferentes caminhos de escrita.
 
+## Regra atual de idempotência
+
+O fluxo atual de `POST /payments` funciona assim:
+
+- a primeira tentativa com uma nova `Idempotency-Key` cria um registro `PENDING`
+- a request que conseguiu inserir o registro é a dona do processamento
+- ao concluir, a API persiste exatamente o `response_status_code` e o `response_body`
+- retries com a mesma chave reutilizam a resposta persistida
+- se outra request encontrar o registro em `PENDING`, ela faz polling no banco a cada `100ms` por até `3s`
+- se o estado final aparecer dentro desse intervalo, a mesma resposta persistida é devolvida
+- se continuar `PENDING`, a API responde `202`
+
+Contrato atual:
+
+- `200` para respostas persistidas finais, incluindo sucesso e falha
+- `202` para pendência após timeout de polling
+
+Nota de produção:
+
+- o reuso da mesma `Idempotency-Key` com payload diferente deve ser rejeitado
+- uma janela de retenção da chave, por exemplo `24h`, pode ser aplicada em ambiente produtivo
+
 ## Como rodar localmente
 
 Instalar as dependências:
@@ -151,9 +173,9 @@ curl -i -X POST http://localhost:3000/payments \
 
 Resposta esperada no estado atual:
 
-- status `501 Not Implemented`
-- corpo JSON controlado pela camada `payments`
-- validação de body e header já conectada
+- status `200 OK`
+- corpo persistido com `paymentId`, `status`, `amount` e `customerId`
+- reuso da mesma `Idempotency-Key` devolve a mesma resposta persistida
 
 Comandos úteis:
 

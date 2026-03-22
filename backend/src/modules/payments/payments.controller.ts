@@ -9,6 +9,6 @@ export class PaymentsController {
   async create(req: Request<unknown, unknown, CreatePaymentBody>, res: Response) {
     const response = await this.paymentsService.createPayment(req.body, res.locals.idempotencyKey)
 
-    res.status(501).json(response)
+    res.status(response.statusCode).json(response.body)
   }
 }

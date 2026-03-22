@@ -51,6 +51,8 @@ Essa abordagem garante:
 - ausência de processamento duplicado para a mesma chave
 - replay da mesma resposta final em retries
 - consistência mesmo sob concorrência real entre requests
+- correção de polling apoiada em read-after-write consistency do PostgreSQL
+- ausência de eventual consistency no fluxo crítico, porque todas as transições ficam no mesmo banco
 
 ## Modelagem da persistência
 
@@ -75,6 +77,18 @@ Fluxo esperado do `POST /payments`:
 5. se não inseriu, buscar o registro já existente
 6. se já estiver finalizado, retornar exatamente a resposta persistida
 7. se ainda estiver `PENDING`, fazer polling curto e depois retornar resultado final ou `202`
+
+Detalhes explícitos da implementação:
+
+- polling a cada `100ms`
+- timeout máximo de `3s`
+- `200` para `SUCCESS` e `FAILED`
+- `202` para `PENDING` após timeout
+
+Nota de produção:
+
+- reuso da mesma `Idempotency-Key` com payload divergente deve ser rejeitado
+- uma janela de retenção da chave, por exemplo `24h`, pode ser aplicada fora do escopo do MVP
 
 ## Papel do Redis
 
