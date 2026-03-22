@@ -14,6 +14,8 @@ Além disso, a raiz do repositório concentra a documentação:
 
 O objetivo técnico principal é demonstrar idempotência e concorrência corretas em pagamentos, com PostgreSQL como fonte de verdade.
 
+Na camada de apresentação, o frontend precisa ser suficiente para tornar visível o comportamento idempotente do backend, sem desviar o foco para complexidade desnecessária de UI ou estado global.
+
 ## Decisão de arquitetura
 
 A arquitetura recomendada para este teste é:
@@ -177,6 +179,10 @@ Na Vercel, a configuração recomendada é:
 - criar um projeto para o frontend
 - definir `frontend/` como `Root Directory`
 - configurar a variável `VITE_API_URL` com a URL pública do backend
+- usar `Vite` como framework preset
+- manter `pnpm install --frozen-lockfile` como install command
+- usar `pnpm build` como build command
+- publicar o conteúdo de `dist`
 
 Não é obrigatório criar `vercel.json` na raiz para esse fluxo. O caminho mais simples é configurar o diretório do frontend diretamente no painel da Vercel.
 
@@ -188,6 +194,10 @@ No Render, a configuração recomendada é:
 - criar um Web Service para o backend
 - apontar o serviço para a pasta `backend/`
 - configurar `DATABASE_URL` com a conexão do Postgres do próprio Render
+- configurar `FRONTEND_URL` com a URL pública da Vercel
+- usar `pnpm install --frozen-lockfile && pnpm build` como build command
+- usar `pnpm start` como start command
+- expor `GET /health` como health check path
 - publicar a API como serviço HTTP separado
 
 ### PostgreSQL no Render
@@ -207,6 +217,17 @@ Pontos que devem ser documentados com transparência:
 - após expirar, há um período de graça antes da exclusão definitiva
 - o plano gratuito não oferece backups
 
+### Migrations no deploy
+
+Como o projeto evita adicionar infraestrutura desnecessária nesta fase, as migrations podem ser aplicadas com um comando manual simples usando a `DATABASE_URL` do ambiente:
+
+```bash
+cd backend
+DATABASE_URL=postgresql://... pnpm db:migrate
+```
+
+Isso é suficiente para o escopo do desafio e evita introduzir automação de deploy antes de ela ser realmente necessária.
+
 ## Comunicação entre frontend e backend
 
 Como os serviços ficam em hosts diferentes, o frontend deve consumir a API por URL pública configurada em variável de ambiente.
@@ -217,11 +238,62 @@ Exemplo:
 VITE_API_URL=https://seu-backend.onrender.com
 ```
 
+No backend, as variáveis mínimas para produção ficam nesta linha:
+
+```env
+PORT=3000
+NODE_ENV=production
+FRONTEND_URL=https://seu-frontend.vercel.app
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+```
+
 A aplicação frontend não precisa compartilhar processo nem host com o backend. O que precisa existir é:
 
 - URL pública do backend
 - CORS configurado corretamente
 - contrato HTTP estável
+
+## Estratégia do frontend
+
+O frontend da Sprint 8 foi mantido simples, mas intencional:
+
+- React com estado local
+- Vite para desenvolvimento e build
+- Tailwind CSS v4 para composição visual
+- componentes locais seguindo o padrão oficial do shadcn/ui para `Button`, `Input`, `Card` e `Badge`
+
+Fluxos que a tela precisa demonstrar:
+
+- criação de pagamento com chave inédita
+- retry com a mesma `Idempotency-Key`
+- duas requests concorrentes com a mesma chave
+- exibição do payload enviado
+- exibição do status HTTP retornado
+- exibição do corpo persistido da resposta
+- histórico das tentativas realizadas
+
+Essa abordagem é suficiente para o desafio porque mostra o comportamento do backend de forma clara sem introduzir gerenciamento de cache, data fetching library ou abstrações desnecessárias.
+
+## Execução local
+
+Para desenvolvimento local, o caminho mais direto agora é um único comando na raiz do monorepo:
+
+```bash
+pnpm dev:full
+```
+
+Esse fluxo:
+
+- sobe o PostgreSQL local no Docker
+- aguarda o banco ficar pronto
+- aplica as migrations de desenvolvimento e teste
+- inicia backend e frontend em paralelo
+
+Se o banco já estiver pronto, o atalho continua sendo:
+
+```bash
+pnpm dev
+```
 
 ## Vantagens de manter monorepo
 

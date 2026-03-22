@@ -6,6 +6,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "dev:full": "pnpm db:setup && pnpm dev",
     "dev": "pnpm -r --parallel --filter backend --filter frontend dev",
     "backend": "pnpm --filter backend dev",
     "frontend": "pnpm --filter frontend dev",

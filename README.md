@@ -13,6 +13,14 @@ A proposta é manter:
 
 O ponto central da solução é garantir que múltiplas tentativas com a mesma `Idempotency-Key` retornem sempre o mesmo resultado persistido, sem processamento duplicado.
 
+Na Sprint 8, o frontend passou a expor essa dinâmica de forma visual com:
+
+- formulário com `amount`, `customerId` e `idempotencyKey`
+- botão para criar um pagamento
+- botão para repetir a mesma request
+- botão para disparar duas requests concorrentes
+- painel com payload atual, resposta mais recente e histórico de tentativas
+
 ## Estrutura esperada
 
 ```text
@@ -43,6 +51,15 @@ Hospedar o frontend na Vercel:
 2. criar um projeto apontando para `frontend/`
 3. definir `frontend/` como `Root Directory`
 4. configurar `VITE_API_URL` com a URL pública do backend
+5. manter o output padrão em `dist`
+
+Configuração prática sugerida na Vercel:
+
+- Framework Preset: `Vite`
+- Root Directory: `frontend`
+- Install Command: `pnpm install --frozen-lockfile`
+- Build Command: `pnpm build`
+- Output Directory: `dist`
 
 ### Backend
 
@@ -53,6 +70,14 @@ Hospedar o backend no Render:
 3. configurar `DATABASE_URL` com a string de conexão do Postgres do próprio Render
 4. publicar o serviço HTTP
 
+Configuração prática sugerida no Render:
+
+- Runtime: `Node`
+- Root Directory: `backend`
+- Build Command: `pnpm install --frozen-lockfile && pnpm build`
+- Start Command: `pnpm start`
+- Health Check Path: `/health`
+
 ### Banco
 
 Hospedar o banco no Render:
@@ -61,6 +86,13 @@ Hospedar o banco no Render:
 2. obter a `DATABASE_URL`
 3. executar as migrations no banco remoto
 4. conectar o backend ao banco
+
+Para aplicar as migrations no ambiente remoto, o caminho mais simples é usar a própria `DATABASE_URL` do serviço e rodar:
+
+```bash
+cd backend
+DATABASE_URL=postgresql://... pnpm db:migrate
+```
 
 ## Variáveis de ambiente esperadas
 
@@ -74,11 +106,18 @@ VITE_API_URL=https://seu-backend.onrender.com
 
 ```env
 PORT=3000
+NODE_ENV=production
+FRONTEND_URL=https://seu-frontend.vercel.app
 DATABASE_URL=postgresql://user:password@host/database?sslmode=require
 REDIS_URL=redis://localhost:6379
 ```
 
 `REDIS_URL` pode ser opcional se Redis não fizer parte da primeira versão em produção.
+
+Arquivos de exemplo já disponíveis no repositório:
+
+- `frontend/.env.example`
+- `backend/.env.example`
 
 ## Modelagem atual do banco
 
@@ -178,6 +217,23 @@ Isso permite correlacionar:
 - erro tratado
 - resposta final
 
+## Frontend de demonstração
+
+O frontend foi desenhado para mostrar o comportamento do backend sem adicionar estado global ou infraestrutura extra.
+
+Fluxos visíveis na interface:
+
+- envio de uma request nova com chave inédita
+- replay da mesma resposta ao repetir a request com a mesma chave
+- disparo de duas requests concorrentes com a mesma `Idempotency-Key`
+- visualização do corpo enviado, status HTTP retornado e corpo persistido da resposta
+
+Os componentes base da interface seguem o padrão oficial do shadcn/ui, adaptado localmente só onde a identidade visual da demo pede ajustes:
+
+- `Button`
+- `Input`
+- `Card`
+
 ## Como rodar localmente
 
 Instalar as dependências:
@@ -185,6 +241,19 @@ Instalar as dependências:
 ```bash
 pnpm install
 ```
+
+Subir banco, migrations, backend e frontend com um único comando:
+
+```bash
+pnpm dev:full
+```
+
+Esse comando:
+
+- sobe o PostgreSQL local no Docker
+- espera o banco ficar pronto
+- aplica as migrations de desenvolvimento e teste
+- inicia backend e frontend em paralelo
 
 Subir o PostgreSQL local para desenvolvimento e testes:
 
@@ -245,6 +314,7 @@ Resposta esperada no estado atual:
 Comandos úteis:
 
 ```bash
+pnpm dev:full
 pnpm build
 pnpm test
 pnpm test:unit
@@ -255,6 +325,16 @@ Convenção atual:
 
 - `pnpm test` roda a suíte unitária do backend
 - `pnpm test:integration` roda a prova forte de Sprint 6 contra PostgreSQL real
+
+## Deploy mínimo recomendado
+
+Sem adicionar infraestrutura extra, o caminho mais enxuto fica assim:
+
+- Vercel entrega o frontend estático em `frontend/`
+- Render executa a API em `backend/`
+- Render PostgreSQL atende `DATABASE_URL`
+
+Isso mantém o monorepo intacto e evita arquivos de infraestrutura desnecessários enquanto o deploy ainda pode ser configurado diretamente pelos painéis das plataformas.
 
 Comandos auxiliares do banco local:
 
