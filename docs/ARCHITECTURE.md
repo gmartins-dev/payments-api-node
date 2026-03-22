@@ -2,345 +2,166 @@
 
 ## Visão geral
 
-Este projeto foi pensado como um monorepo fullstack com dois aplicativos principais:
+Este projeto é um monorepo com dois aplicativos:
 
 - `backend/`: API de pagamentos idempotentes em Node.js, TypeScript e Express
-- `frontend/`: interface de demonstração em React, Vite, Tailwind e shadcn/ui
+- `frontend/`: interface de demonstração em React, Vite, Tailwind CSS e componentes no padrão shadcn/ui
 
-Além disso, a raiz do repositório concentra a documentação:
+Hospedagem recomendada:
 
-- `README.md`
-- `ARCHITECTURE.md`
-
-O objetivo técnico principal é demonstrar idempotência e concorrência corretas em pagamentos, com PostgreSQL como fonte de verdade.
-
-Na camada de apresentação, o frontend precisa ser suficiente para tornar visível o comportamento idempotente do backend, sem desviar o foco para complexidade desnecessária de UI ou estado global.
-
-## Decisão de arquitetura
-
-A arquitetura recomendada para este teste é:
-
-- frontend hospedado na Vercel
-- backend hospedado no Render como Web Service
-- banco PostgreSQL hospedado no Render
-
-Mesmo com frontend e backend em hosts diferentes, o projeto continua sendo um monorepo. Não é necessário separar em dois repositórios.
-
-Estrutura esperada:
-
-```text
-payments-idempotency/
-  backend/
-  frontend/
-  ARCHITECTURE.md
-  README.md
-```
-
-## Fonte de verdade da idempotência
-
-A garantia principal de idempotência e concorrência deve ficar no PostgreSQL, não em memória e não somente no Redis.
-
-A estratégia base é:
-
-- persistir um registro por `Idempotency-Key`
-- aplicar `UNIQUE(idempotency_key)`
-- tentar `INSERT ... ON CONFLICT DO NOTHING RETURNING *`
-- a request que inserir com sucesso é a dona do processamento
-- requests concorrentes com a mesma chave reutilizam o estado persistido
-
-Essa abordagem garante:
-
-- ausência de processamento duplicado para a mesma chave
-- replay da mesma resposta final em retries
-- consistência mesmo sob concorrência real entre requests
-- correção de polling apoiada em read-after-write consistency do PostgreSQL
-- ausência de eventual consistency no fluxo crítico, porque todas as transições ficam no mesmo banco
-
-## Modelagem da persistência
-
-O modelo inicial do banco usa:
-
-- enum `payment_status`
-- tabela `payments`
-- `UNIQUE(idempotency_key)`
-- índice por `status`
-- índice por `customer_id`
-
-Além disso, a coluna `updated_at` existe desde a primeira migration e é mantida por trigger no banco. Isso reduz risco de inconsistência entre caminhos de escrita e mantém a atualização de timestamp protegida no nível da persistência.
-
-## Fluxo do backend
-
-Fluxo esperado do `POST /payments`:
-
-1. validar body e header `Idempotency-Key`
-2. tentar inserir o pagamento com status `PENDING`
-3. se inseriu, processar
-4. persistir `SUCCESS` ou `FAILED`, incluindo `response_status_code` e `response_body`
-5. se não inseriu, buscar o registro já existente
-6. se já estiver finalizado, retornar exatamente a resposta persistida
-7. se ainda estiver `PENDING`, fazer polling curto e depois retornar resultado final ou `202`
-
-Detalhes explícitos da implementação:
-
-- polling a cada `100ms`
-- timeout máximo de `3s`
-- `200` para `SUCCESS` e `FAILED`
-- `202` para `PENDING` após timeout
-
-Nota de produção:
-
-- reuso da mesma `Idempotency-Key` com payload divergente deve ser rejeitado
-- uma janela de retenção da chave, por exemplo `24h`, pode ser aplicada fora do escopo do MVP
-
-## Processador simulado
-
-Para demonstrar o fluxo de pagamento sem depender de um provedor externo real, o projeto usa um processador simulado com:
-
-- tempo variável entre `1500ms` e `4000ms`
-- chance de falha configurável, com padrão de `30%`
-- erro tipado para falha temporária do processador
-
-Esse desenho permite:
-
-- demonstrar o comportamento de `PENDING`
-- provar replay de sucesso e falha
-- manter previsibilidade em testes por meio de injeção de configuração
-
-## Observabilidade e contexto de request
-
-O backend usa `pino` e `pino-http` para manter logs estruturados.
-
-Cada request recebe:
-
-- `requestId`, reaproveitado do header quando existir ou gerado no middleware
-- `idempotencyKey`, quando enviada pelo cliente
-
-Esses valores ficam disponíveis em `res.locals`, aparecem no logging HTTP e também são usados pelo tratamento centralizado de erros.
-
-A ordem de middleware é:
-
-1. contexto de request
-2. logging HTTP
-3. rotas
-4. tratamento centralizado de erro
-
-## Documentação da API
-
-O backend também expõe documentação OpenAPI 3 via Swagger UI em `GET /docs`.
-
-Esse endpoint documenta:
-
-- `GET /health`
-- `POST /payments`
-- contratos de request e response
-- diferença entre `200` final persistido e `202 PENDING`
-- garantias de idempotência e comportamento em concorrência
-
-O objetivo aqui é manter a API autoexplicativa sem introduzir camadas extras além de `swagger-jsdoc` e `swagger-ui-express`.
-
-## Estratégia de testes
-
-Os testes automatizados do backend cobrem o fluxo HTTP completo de `POST /payments` com verificação de estado persistido.
-
-Pontos principais:
-
-- uso de Vitest + Supertest
-- banco de teste PostgreSQL real
-- uso de `TEST_DATABASE_URL` para apontar para a instância de teste
-- isolamento por schema efêmero a cada execução
-- aplicação das migrations reais no ambiente de teste
-- injeção de processador determinístico e controlado por barreira manual para controlar sucesso, falha e tempo de processamento
-
-Isso permite provar, de forma automatizada, que:
-
-- apenas uma request vence a ownership do processamento
-- retries reutilizam exatamente a resposta final persistida
-- concorrência não duplica linha nem processamento
-- `PENDING` mantém comportamento limitado e consistente
-
-Esse desenho é preferível a bancos embutidos para o Sprint 6 porque a prova principal do desafio depende de semântica real de PostgreSQL sob múltiplas conexões.
-
-## Papel do Redis
-
-Redis pode existir como melhoria opcional, mas não como base da correção.
-
-Usos aceitáveis:
-
-- cache curto por chave de idempotência
-- sinalização leve de conclusão
-- melhorias futuras de coordenação
-
-Usos que devem ser evitados como base principal:
-
-- lock distribuído como garantia principal
-- deduplicação sem persistência no banco
-
-## Deploy em monorepo
-
-O formato recomendado de publicação para este teste é:
-
-- `frontend` na Vercel
-- `backend` no Render como Web Service
+- frontend na Vercel
+- backend no Render
 - PostgreSQL no Render
 
-Essa abordagem reduz a configuração ao mínimo onde realmente importa e mantém backend e banco no mesmo provedor, o que ajuda bastante em um desafio curto.
+Neon também pode ser usado como alternativa de Postgres em nuvem.
 
-### Frontend na Vercel
+## Decisões principais
 
-Na Vercel, a configuração recomendada é:
+As decisões centrais da solução são:
 
-- conectar o mesmo repositório Git
-- criar um projeto para o frontend
-- definir `frontend/` como `Root Directory`
-- configurar a variável `VITE_API_URL` com a URL pública do backend
-- usar `Vite` como framework preset
-- manter `pnpm install --frozen-lockfile` como install command
-- usar `pnpm build` como build command
-- publicar o conteúdo de `dist`
+- PostgreSQL como fonte de verdade da idempotência
+- `UNIQUE(idempotency_key)` como mecanismo principal de deduplicação
+- persistência do `response_status_code` e do `response_body`
+- polling curto para observar transição de `PENDING`
+- ausência de estado em memória para correção do fluxo
 
-Não é obrigatório criar `vercel.json` na raiz para esse fluxo. O caminho mais simples é configurar o diretório do frontend diretamente no painel da Vercel.
+Isso mantém a correção do sistema concentrada em uma única base transacional.
 
-### Backend no Render
+## Por que PostgreSQL é a fonte de verdade
 
-No Render, a configuração recomendada é:
+A garantia relevante deste desafio não é apenas “não duplicar insert”, mas também:
 
-- conectar o mesmo repositório Git
-- criar um Web Service para o backend
-- apontar o serviço para a pasta `backend/`
-- configurar `DATABASE_URL` com a conexão do Postgres do próprio Render
-- configurar `FRONTEND_URL` com a URL pública da Vercel
-- usar `pnpm install --frozen-lockfile && pnpm build` como build command
-- usar `pnpm start` como start command
-- expor `GET /health` como health check path
-- publicar a API como serviço HTTP separado
+- garantir que só uma request processe de fato
+- permitir replay do mesmo resultado em retries
+- responder de forma consistente sob concorrência
 
-### PostgreSQL no Render
+Por isso, o fluxo depende do banco para:
 
-Para este teste, usar o Postgres do próprio Render vale a pena porque:
+- registrar o primeiro `PENDING`
+- definir ownership do processamento
+- persistir o resultado final
+- permitir replay exato do estado salvo
 
-- o setup é mais rápido
-- há menos chance de erro de configuração
-- backend e banco ficam integrados no mesmo provedor
-- sobra mais tempo para focar no core de idempotência
+Redis pode existir como otimização, mas não como base de correção.
 
-As limitações do plano gratuito não comprometem a proposta do desafio, desde que o objetivo seja a entrega e a demonstração do projeto.
+## Como a concorrência é tratada
 
-Pontos que devem ser documentados com transparência:
+O fluxo de `POST /payments` é:
 
-- o Postgres gratuito do Render expira 30 dias após a criação
-- após expirar, há um período de graça antes da exclusão definitiva
-- o plano gratuito não oferece backups
+1. validar body e `Idempotency-Key`
+2. tentar `INSERT ... ON CONFLICT DO NOTHING RETURNING *`
+3. se inseriu, essa request venceu a corrida e processa
+4. se não inseriu, buscar o registro existente
+5. se o registro já estiver em `SUCCESS` ou `FAILED`, retornar exatamente a resposta persistida
+6. se estiver em `PENDING`, fazer polling curto e retornar o estado final ou `202`
 
-### Migrations no deploy
+Esse desenho garante que apenas uma request execute o processamento para a mesma chave.
 
-Como o projeto evita adicionar infraestrutura desnecessária nesta fase, as migrations podem ser aplicadas com um comando manual simples usando a `DATABASE_URL` do ambiente:
+## Atomicidade do PostgreSQL e por que não usar lock distribuído
 
-```bash
-cd backend
-DATABASE_URL=postgresql://... pnpm db:migrate
-```
+A solução depende de:
 
-Isso é suficiente para o escopo do desafio e evita introduzir automação de deploy antes de ela ser realmente necessária.
+- atomicidade de escrita no PostgreSQL
+- constraint única em `idempotency_key`
+- transação para a escrita do estado final
 
-## Comunicação entre frontend e backend
+Isso é suficiente para o problema proposto e evita a complexidade de lock distribuído explícito.
 
-Como os serviços ficam em hosts diferentes, o frontend deve consumir a API por URL pública configurada em variável de ambiente.
+Não há necessidade de Redis lock ou mecanismo semelhante porque:
 
-Exemplo:
+- a corrida principal já é resolvida pelo `UNIQUE(idempotency_key)`
+- o resultado final fica persistido na mesma base
+- retries e concorrência consultam o mesmo estado transacional
 
-```env
-VITE_API_URL=https://seu-backend.onrender.com
-```
+## Read-after-write e correção do polling
 
-No backend, as variáveis mínimas para produção ficam nesta linha:
+O polling sobre `PENDING` é seguro neste desenho porque a própria aplicação lê do mesmo PostgreSQL onde o estado final foi gravado.
 
-```env
-PORT=3000
-NODE_ENV=production
-FRONTEND_URL=https://seu-frontend.vercel.app
-DATABASE_URL=postgresql://user:password@host/database?sslmode=require
-```
+Na prática:
 
-A aplicação frontend não precisa compartilhar processo nem host com o backend. O que precisa existir é:
+- a request vencedora persiste `SUCCESS` ou `FAILED`
+- as demais consultam o banco durante a janela de polling
+- assim que o estado final aparece, a mesma resposta persistida é reaproveitada
 
-- URL pública do backend
-- CORS configurado corretamente
-- contrato HTTP estável
+Essa consistência read-after-write é suficiente para o caso de uso.
 
-## Estratégia do frontend
+## Como o desenho evita eventual consistency
 
-O frontend da Sprint 8 foi mantido simples, mas intencional:
+O fluxo crítico evita eventual consistency porque todas as transições relevantes ficam no mesmo banco:
 
-- React com estado local
-- Vite para desenvolvimento e build
-- Tailwind CSS v4 para composição visual
-- componentes locais seguindo o padrão oficial do shadcn/ui para `Button`, `Input`, `Card` e `Badge`
+- criação do `PENDING`
+- promoção para `SUCCESS` ou `FAILED`
+- persistência do corpo de resposta final
+- replay do mesmo resultado
 
-Fluxos que a tela precisa demonstrar:
+Não há sincronização assíncrona entre múltiplas fontes de verdade para a correção do pagamento.
 
-- criação de pagamento com chave inédita
-- retry com a mesma `Idempotency-Key`
-- duas requests concorrentes com a mesma chave
-- exibição do payload enviado
-- exibição do status HTTP retornado
-- exibição do corpo persistido da resposta
-- histórico das tentativas realizadas
+## Contrato HTTP: `200` versus `202`
 
-Essa abordagem é suficiente para o desafio porque mostra o comportamento do backend de forma clara sem introduzir gerenciamento de cache, data fetching library ou abstrações desnecessárias.
+A API usa:
 
-## Execução local
+- `200` para resultado final persistido
+- `202` para `PENDING` após timeout de polling
 
-Para desenvolvimento local, o caminho mais direto agora é um único comando na raiz do monorepo:
+Detalhe importante:
 
-```bash
-pnpm dev:full
-```
+- `200 SUCCESS` e `200 FAILED` existem porque o contrato principal é devolver exatamente o resultado final já persistido para aquela chave
+- `202` representa apenas um estado transitório ainda não finalizado
 
-Esse fluxo:
+## Estratégia de polling para `PENDING`
 
-- sobe o PostgreSQL local no Docker
-- aguarda o banco ficar pronto
-- aplica as migrations de desenvolvimento e teste
-- inicia backend e frontend em paralelo
+O polling é propositalmente curto:
 
-Se o banco já estiver pronto, o atalho continua sendo:
+- intervalo de `100ms`
+- timeout máximo de `3s`
 
-```bash
-pnpm dev
-```
+Objetivo:
 
-## Vantagens de manter monorepo
+- dar chance de devolver o resultado final sem obrigar o cliente a retry imediato
+- evitar bloqueio longo da request
+- manter o comportamento previsível e simples
 
-Para este desafio, o monorepo é a melhor escolha porque:
+Se o estado final não aparecer dentro da janela, a resposta é `202 PENDING`.
 
-- mantém backend e frontend no mesmo contexto
-- centraliza documentação e decisões técnicas
-- facilita a avaliação do projeto como entrega única
-- evita custo operacional de manter múltiplos repositórios
+## Estratégia de `updated_at`
 
-## Tradeoffs da abordagem
+A coluna `updated_at` é mantida por trigger no banco.
 
-Vantagens:
+Isso foi escolhido para:
 
-- setup muito simples
-- menos configuração entre provedores
-- deploy independente por subdiretório
-- entrega mais rápida
+- reduzir risco de inconsistência entre caminhos de escrita
+- manter o comportamento protegido no nível da persistência
+- evitar depender apenas de disciplina no código de aplicação
 
-Tradeoffs:
+## Notas de produção
 
-- plano gratuito com mais limitações
-- banco menos durável como solução de portfólio de longo prazo
-- necessidade de configurar Vercel e Render separadamente
+Melhorias naturais fora do escopo do MVP:
 
-## Evolução futura
+- retenção de `Idempotency-Key` por janela, por exemplo `24h`
+- rejeição explícita para payload divergente com a mesma chave
+- trilha de auditoria mais forte para reuso incorreto da chave
 
-Se o projeto crescer, evoluções naturais seriam:
+Essas evoluções refinam o contrato, mas não mudam a correção central do desenho atual.
 
-- pipeline CI para testes e validações
-- deploy preview por branch
-- domínio customizado
-- observabilidade mais forte
-- fila ou worker separado, se houver requisito real
+## Neon e pooling
 
-Nenhuma dessas evoluções é necessária para a primeira versão do desafio.
+Neon pode ser usado como Postgres em nuvem para este projeto, mas exige atenção ao pooling.
+
+Pontos importantes:
+
+- Neon já usa PgBouncer no lado deles
+- adicionar mais uma camada agressiva de pooling na aplicação pode criar “double pooling”
+- para este serviço, a configuração simples com `pg` é suficiente
+
+Em outras palavras, o backend não precisa de uma estratégia adicional sofisticada de pool para funcionar bem neste desafio. O mais importante é manter a conexão simples e evitar sobreposição desnecessária com o pooling do Neon.
+
+## Resumo arquitetural
+
+O projeto prioriza:
+
+- correção de idempotência antes de complexidade de infraestrutura
+- concorrência segura com base em primitives do PostgreSQL
+- replay exato da resposta persistida
+- documentação e testes que tornam o comportamento auditável
+
+Esse é o melhor equilíbrio para um desafio técnico curto: forte onde importa, sem overengineering.

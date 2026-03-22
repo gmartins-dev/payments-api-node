@@ -2,429 +2,188 @@
 
 ## Visão geral
 
-Este repositório foi planejado como um monorepo para demonstrar um fluxo de pagamentos com idempotência e concorrência corretas.
+Este projeto demonstra um fluxo de pagamentos idempotente com concorrência segura.
 
-A proposta é manter:
+Stack principal:
 
-- `backend/` com a API
-- `frontend/` com a interface de demonstração
+- backend em Node.js, TypeScript e Express
 - PostgreSQL como fonte de verdade
-- Redis apenas como melhoria opcional
-
-O ponto central da solução é garantir que múltiplas tentativas com a mesma `Idempotency-Key` retornem sempre o mesmo resultado persistido, sem processamento duplicado.
-
-Na Sprint 8, o frontend passou a expor essa dinâmica de forma visual com:
-
-- formulário com `amount`, `customerId` e `idempotencyKey`
-- botão para criar um pagamento
-- botão para repetir a mesma request
-- botão para disparar duas requests concorrentes
-- painel com payload atual, resposta mais recente e histórico de tentativas
-
-## Estrutura esperada
-
-```text
-.
-├── backend/
-├── frontend/
-├── ARCHITECTURE.md
-└── README.md
-```
-
-## Como colocar no ar gratuitamente
-
-A combinação mais pragmática para este projeto é:
-
-- frontend na Vercel
-- backend no Render
-- banco PostgreSQL no Render
-
-Mesmo usando hosts diferentes, o projeto continua sendo um monorepo. O deploy é separado por pasta, não por repositório.
-
-## Estratégia de deploy
-
-### Frontend
-
-Hospedar o frontend na Vercel:
-
-1. conectar este repositório à Vercel
-2. criar um projeto apontando para `frontend/`
-3. definir `frontend/` como `Root Directory`
-4. configurar `VITE_API_URL` com a URL pública do backend
-5. manter o output padrão em `dist`
-
-Configuração prática sugerida na Vercel:
-
-- Framework Preset: `Vite`
-- Root Directory: `frontend`
-- Install Command: `pnpm install --frozen-lockfile`
-- Build Command: `pnpm build`
-- Output Directory: `dist`
-
-### Backend
-
-Hospedar o backend no Render:
-
-1. conectar este repositório ao Render
-2. criar um Web Service apontando para `backend/`
-3. configurar `DATABASE_URL` com a string de conexão do Postgres do próprio Render
-4. publicar o serviço HTTP
-
-Configuração prática sugerida no Render:
-
-- Runtime: `Node`
-- Root Directory: `backend`
-- Build Command: `pnpm install --frozen-lockfile && pnpm build`
-- Start Command: `pnpm start`
-- Health Check Path: `/health`
-
-### Banco
-
-Hospedar o banco no Render:
-
-1. criar um PostgreSQL no Render
-2. obter a `DATABASE_URL`
-3. executar as migrations no banco remoto
-4. conectar o backend ao banco
-
-Para aplicar as migrations no ambiente remoto, o caminho mais simples é usar a própria `DATABASE_URL` do serviço e rodar:
-
-```bash
-cd backend
-DATABASE_URL=postgresql://... pnpm db:migrate
-```
-
-## Variáveis de ambiente esperadas
-
-### Frontend
-
-```env
-VITE_API_URL=https://seu-backend.onrender.com
-```
-
-### Backend
-
-```env
-PORT=3000
-NODE_ENV=production
-FRONTEND_URL=https://seu-frontend.vercel.app
-DATABASE_URL=postgresql://user:password@host/database?sslmode=require
-REDIS_URL=redis://localhost:6379
-```
-
-`REDIS_URL` pode ser opcional se Redis não fizer parte da primeira versão em produção.
-
-Arquivos de exemplo já disponíveis no repositório:
-
-- `frontend/.env.example`
-- `backend/.env.example`
-
-## Modelagem atual do banco
-
-Na Sprint 2, a base de persistência foi definida com:
-
-- enum `payment_status` com `PENDING`, `SUCCESS` e `FAILED`
-- tabela `payments`
-- `UNIQUE(idempotency_key)` como mecanismo central de deduplicação
-- índice por `status`
-- índice por `customer_id`
-
-Os arquivos SQL de migração ficam em:
-
-- `backend/src/migrations/001_create_payments.sql`
-- `backend/src/migrations/002_add_payments_updated_at_trigger.sql`
-
-Nesta etapa, `updated_at` fica garantido por trigger no banco. Isso reduz o risco de inconsistência entre diferentes caminhos de escrita.
-
-## Regra atual de idempotência
-
-O fluxo atual de `POST /payments` funciona assim:
-
-- a primeira tentativa com uma nova `Idempotency-Key` cria um registro `PENDING`
-- a request que conseguiu inserir o registro é a dona do processamento
-- ao concluir, a API persiste exatamente o `response_status_code` e o `response_body`
-- retries com a mesma chave reutilizam a resposta persistida
-- se outra request encontrar o registro em `PENDING`, ela faz polling no banco a cada `100ms` por até `3s`
-- se o estado final aparecer dentro desse intervalo, a mesma resposta persistida é devolvida
-- se continuar `PENDING`, a API responde `202`
-
-Contrato atual:
-
-- `200` para respostas persistidas finais, incluindo sucesso e falha
-- `202` para pendência após timeout de polling
-
-Nota de produção:
-
-- o reuso da mesma `Idempotency-Key` com payload diferente deve ser rejeitado
-- uma janela de retenção da chave, por exemplo `24h`, pode ser aplicada em ambiente produtivo
-
-## Processador simulado
-
-O backend agora usa um processador simulado para demonstrar comportamento assíncrono e falha intermitente.
-
-Comportamento padrão:
-
-- delay variável entre `1500ms` e `4000ms`
-- probabilidade de falha de `30%`
-- sucesso retorna:
-  - `paymentId`
-  - `status: "SUCCESS"`
-  - `amount`
-  - `customerId`
-- falha lança um erro tipado com motivo `PROCESSOR_TEMPORARY_ERROR`
-
-O módulo foi preparado para testes determinísticos por configuração de:
-
-- faixa de delay
-- taxa de falha
-- função aleatória
-- função de espera
-
-## Testes automatizados
-
-O backend agora possui cobertura automatizada para os cenários centrais de idempotência e concorrência.
-
-Cenários cobertos:
-
-- criação de novo pagamento com sucesso
-- retry com a mesma `Idempotency-Key` reaproveitando a mesma resposta persistida de sucesso
-- retry com a mesma `Idempotency-Key` reaproveitando a mesma resposta persistida de falha
-- múltiplas requests concorrentes com a mesma chave sem duplicar linha nem processamento
-- request chegando durante `PENDING`, retornando resultado final persistido ou `202` consistente
-
-Estratégia atual de teste:
-
-- Vitest + Supertest para testes HTTP
-- banco de teste PostgreSQL real apontado por `TEST_DATABASE_URL`
-- isolamento por schema efêmero para cada execução de integração
-- processador injetável e controlado manualmente nos cenários críticos de concorrência e `PENDING`
-
-Esses testes verificam tanto o contrato HTTP quanto o estado persistido no banco.
-
-## Observabilidade
-
-O backend usa:
-
-- `pino` como logger base
-- `pino-http` para logs por request
-- `requestId` em `res.locals` e no header `X-Request-Id`
-- `idempotencyKey` anexada ao contexto sempre que presente
-
-Isso permite correlacionar:
-
-- request recebida
-- processamento da rota
-- erro tratado
-- resposta final
-
-## Documentação da API
-
-A API expõe documentação OpenAPI 3 com Swagger UI em:
-
-```text
-GET /docs
-```
-
-Em ambiente local, depois de subir o backend, acesse:
-
-```text
-http://localhost:3000/docs
-```
-
-Essa documentação cobre:
-
-- `GET /health`
-- `POST /payments`
-- header `Idempotency-Key`
-- contratos de `200 SUCCESS`, `200 FAILED` e `202 PENDING`
-- comportamento idempotente em retries e concorrência
-
-## Frontend de demonstração
-
-O frontend foi desenhado para mostrar o comportamento do backend sem adicionar estado global ou infraestrutura extra.
-
-Fluxos visíveis na interface:
-
-- envio de uma request nova com chave inédita
-- replay da mesma resposta ao repetir a request com a mesma chave
-- disparo de duas requests concorrentes com a mesma `Idempotency-Key`
-- visualização do corpo enviado, status HTTP retornado e corpo persistido da resposta
-
-Os componentes base da interface seguem o padrão oficial do shadcn/ui, adaptado localmente só onde a identidade visual da demo pede ajustes:
-
-- `Button`
-- `Input`
-- `Card`
+- frontend em React, Vite, Tailwind CSS e componentes no padrão shadcn/ui
+- frontend hospedado na Vercel
+- backend e PostgreSQL hospedados no Render
+- Neon como opção para Postgres em nuvem
+
+O objetivo central é garantir que múltiplas tentativas com a mesma `Idempotency-Key` retornem exatamente a mesma resposta persistida, sem processamento duplicado.
 
 ## Como rodar localmente
 
-Instalar as dependências:
+Instale as dependências:
 
 ```bash
 pnpm install
 ```
 
-Subir banco, migrations, backend e frontend com um único comando:
+Suba banco, backend e frontend com um único comando:
 
 ```bash
 pnpm dev:full
 ```
 
-Esse comando:
+Esse fluxo:
 
 - sobe o PostgreSQL local no Docker
-- espera o banco ficar pronto
-- aplica as migrations de desenvolvimento e teste
+- aguarda o banco ficar pronto
+- aplica as migrations
 - inicia backend e frontend em paralelo
 
-Subir o PostgreSQL local para desenvolvimento e testes:
-
-```bash
-pnpm db:setup
-```
-
-Subir frontend e backend juntos:
+Atalhos úteis:
 
 ```bash
 pnpm dev
-```
-
-Subir apenas o backend:
-
-```bash
 pnpm backend
-```
-
-Subir apenas o frontend:
-
-```bash
 pnpm frontend
+pnpm db:setup
+pnpm db:down
+pnpm db:logs
 ```
 
-Endereços esperados:
+Endereços locais:
 
 - frontend: `http://localhost:5173`
 - backend: `http://localhost:3000`
 - Swagger UI: `http://localhost:3000/docs`
 
-Teste rápido do backend:
+Health check:
 
 ```bash
 curl http://localhost:3000/health
 ```
 
-Resposta esperada:
+## Como configurar Neon
 
-```json
-{"status":"ok"}
+O deploy principal recomendado para este teste continua sendo Render para backend e Postgres, mas Neon pode ser usado sem mudar a lógica da aplicação.
+
+Exemplo de configuração:
+
+```env
+DATABASE_URL=postgresql://user:password@ep-xxxx.us-east-2.aws.neon.tech/dbname?sslmode=require
+FRONTEND_URL=https://seu-frontend.vercel.app
+PORT=3000
+NODE_ENV=production
 ```
 
-Teste rápido do módulo de pagamentos:
+Cuidados com Neon:
+
+- Neon já usa pooling no lado deles com PgBouncer
+- evite adicionar uma camada extra de pooling agressivo na aplicação
+- para este projeto, a configuração simples com `pg` é suficiente
+- em cenários que exigem semântica de sessão, prefira avaliar conexão direta em vez de “double pooling”
+
+## Exemplos de uso
+
+Criar um pagamento:
 
 ```bash
 curl -i -X POST http://localhost:3000/payments \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: setup-check' \
+  -H 'Idempotency-Key: payment-001' \
   -d '{"amount":100,"customerId":"customer-1"}'
 ```
 
-Resposta esperada no estado atual:
-
-- status `200 OK`
-- corpo persistido com `paymentId`, `status`, `amount` e `customerId`
-- reuso da mesma `Idempotency-Key` devolve a mesma resposta persistida
-
-Comandos úteis:
+Repetir a mesma request com a mesma chave:
 
 ```bash
-pnpm dev:full
-pnpm build
-pnpm test
+curl -i -X POST http://localhost:3000/payments \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: payment-001' \
+  -d '{"amount":100,"customerId":"customer-1"}'
+```
+
+Simular concorrência local:
+
+```bash
+(
+  curl -s -X POST http://localhost:3000/payments \
+    -H 'Content-Type: application/json' \
+    -H 'Idempotency-Key: payment-concurrent-1' \
+    -d '{"amount":100,"customerId":"customer-1"}'
+) & (
+  curl -s -X POST http://localhost:3000/payments \
+    -H 'Content-Type: application/json' \
+    -H 'Idempotency-Key: payment-concurrent-1' \
+    -d '{"amount":100,"customerId":"customer-1"}'
+)
+wait
+```
+
+Contrato esperado:
+
+- `200` para resultado final persistido, inclusive falha
+- `202` quando a chave já existe, o registro ainda está em `PENDING` e o polling curto não encontrou estado final
+
+## Testes
+
+Unitários:
+
+```bash
 pnpm test:unit
-pnpm test:integration
 ```
 
-Convenção atual:
-
-- `pnpm test` roda a suíte unitária do backend
-- `pnpm test:integration` roda a prova forte de Sprint 6 contra PostgreSQL real
-
-## Deploy mínimo recomendado
-
-Sem adicionar infraestrutura extra, o caminho mais enxuto fica assim:
-
-- Vercel entrega o frontend estático em `frontend/`
-- Render executa a API em `backend/`
-- Render PostgreSQL atende `DATABASE_URL`
-
-Isso mantém o monorepo intacto e evita arquivos de infraestrutura desnecessários enquanto o deploy ainda pode ser configurado diretamente pelos painéis das plataformas.
-
-Comandos auxiliares do banco local:
-
-- `pnpm db:up` sobe o Postgres local via Docker
-- `pnpm db:wait` aguarda o Postgres ficar pronto para conexões
-- `pnpm db:setup` sobe o banco, aguarda readiness e aplica as migrations
-- `pnpm db:down` derruba o Postgres local e remove o volume
-- `pnpm db:logs` acompanha os logs do container
-- `pnpm db:migrate` aplica as migrations em `DATABASE_URL`
-- `pnpm db:migrate:test` aplica as migrations no banco `payments_test`
-
-Para rodar os testes de integração com prova real de concorrência, defina `TEST_DATABASE_URL` para um PostgreSQL acessível:
+Integração com PostgreSQL real:
 
 ```bash
-export TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/payments_test
 pnpm test:integration
 ```
 
-Sem `TEST_DATABASE_URL`, apenas os testes unitários devem ser considerados executáveis no ambiente local.
+Os testes de integração:
 
-## Por que Render vale a pena neste teste
+- usam PostgreSQL real via `TEST_DATABASE_URL`
+- verificam estado persistido no banco
+- provam que apenas uma request vence o processamento
+- cobrem retry após sucesso, retry após falha e comportamento durante `PENDING`
 
-Para um desafio curto, Render com backend e Postgres no mesmo provedor traz vantagens claras:
+## Deploy
 
-- setup mais simples
-- menos pontos de configuração
-- deploy mais rápido
-- mais tempo para focar em idempotência, concorrência e testes
+Estratégia enxuta recomendada:
 
-## Limitações que não atrapalham o teste
+- Vercel para `frontend/`
+- Render Web Service para `backend/`
+- Render PostgreSQL para `DATABASE_URL`
 
-É importante saber que o plano gratuito pode ter restrições de disponibilidade, performance e durabilidade maiores do que um ambiente mais robusto.
+Configuração mínima:
 
-No caso do Postgres gratuito do Render:
+- Vercel
+  - Root Directory: `frontend`
+  - Build Command: `pnpm build`
+- Render
+  - Root Directory: `backend`
+  - Build Command: `pnpm install --frozen-lockfile && pnpm build`
+  - Start Command: `pnpm start`
+  - Health Check Path: `/health`
 
-- ele expira 30 dias após a criação
-- não oferece backups
-- pode sofrer reinícios e indisponibilidades ocasionais de manutenção
+Documentação da API:
 
-Para este desafio, isso não muda a decisão principal, porque o objetivo é demonstrar a solução funcionando com clareza e rapidez.
+- `GET /docs`
 
-Uma forma madura de documentar isso é registrar no README algo como:
+## Trade-offs
 
-> Este projeto usa o PostgreSQL gratuito do Render por simplicidade e velocidade de entrega. Esse banco expira após 30 dias e não possui backups. Em um ambiente de produção, o ideal é usar uma instância persistente.
+Decisões intencionais desta solução:
 
-## Próximos passos sugeridos
+- PostgreSQL como fonte de verdade, não Redis
+- sem lock distribuído explícito
+- sem fila ou worker separado
+- frontend simples, focado em demonstrar o comportamento do backend
 
-1. modelagem do banco e migrations
-2. implementação do `POST /payments`
-3. testes de concorrência
-4. integração entre frontend e backend
-5. deploy do frontend na Vercel
-6. deploy do backend e banco no Render
+Trade-offs aceitos:
 
-## Documentos do repositório
+- polling curto em vez de mecanismo mais sofisticado de notificação
+- `200` para falha persistida, porque o contrato relevante é “repetir exatamente o resultado final já salvo”
+- setup de deploy manual via painel, sem automação extra
 
-- `ARCHITECTURE.md`: visão arquitetural e decisões principais
+## Melhorias futuras
 
-## Status atual
-
-Neste momento, o repositório já possui o setup inicial funcional de frontend e backend, além da documentação-base para continuar a implementação e preparar o deploy em monorepo com frontend na Vercel e backend + banco no Render.
-
-No backend, a fase inicial de scaffold já inclui:
-
-- `GET /health`
-- módulo `payments` conectado por rota, controller, service, repository, schemas e processor
-- validação inicial com `zod`
-- request context
-- error handler centralizado
-- logging HTTP com `pino-http`
+- retenção de `Idempotency-Key` por janela configurável, por exemplo `24h`
+- rejeição explícita e auditável para payload divergente com mesma chave
+- CI para build, testes e lint
+- observabilidade mais forte em produção
+- fila ou worker separado apenas se houver necessidade real de throughput ou integração externa
