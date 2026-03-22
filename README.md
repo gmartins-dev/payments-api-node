@@ -20,9 +20,7 @@ O ponto central da solução é garantir que múltiplas tentativas com a mesma `
 ├── backend/
 ├── frontend/
 ├── ARCHITECTURE.md
-├── README.md
-├── PLAN.md
-└── CODEX_PROMPTS.md
+└── README.md
 ```
 
 ## Como colocar no ar gratuitamente
@@ -82,6 +80,56 @@ REDIS_URL=redis://localhost:6379
 
 `REDIS_URL` pode ser opcional se Redis não fizer parte da primeira versão em produção.
 
+## Como rodar localmente
+
+Instalar as dependências:
+
+```bash
+pnpm install
+```
+
+Subir frontend e backend juntos:
+
+```bash
+pnpm dev
+```
+
+Subir apenas o backend:
+
+```bash
+pnpm backend
+```
+
+Subir apenas o frontend:
+
+```bash
+pnpm frontend
+```
+
+Endereços esperados:
+
+- frontend: `http://localhost:5173`
+- backend: `http://localhost:3000`
+
+Teste rápido do backend:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Resposta esperada:
+
+```json
+{"status":"ok"}
+```
+
+Comandos úteis:
+
+```bash
+pnpm build
+pnpm test
+```
+
 ## Por que Render vale a pena neste teste
 
 Para um desafio curto, Render com backend e Postgres no mesmo provedor traz vantagens claras:
@@ -109,21 +157,17 @@ Uma forma madura de documentar isso é registrar no README algo como:
 
 ## Próximos passos sugeridos
 
-1. scaffold do `backend/`
-2. modelagem do banco e migrations
-3. implementação do `POST /payments`
-4. testes de concorrência
-5. scaffold do `frontend/`
-6. integração entre frontend e backend
-7. deploy do frontend na Vercel
-8. deploy do backend e banco no Render
+1. modelagem do banco e migrations
+2. implementação do `POST /payments`
+3. testes de concorrência
+4. integração entre frontend e backend
+5. deploy do frontend na Vercel
+6. deploy do backend e banco no Render
 
 ## Documentos do repositório
 
-- `PLAN.md`: plano técnico do projeto
-- `CODEX_PROMPTS.md`: prompts por sprint para implementação
 - `ARCHITECTURE.md`: visão arquitetural e decisões principais
 
 ## Status atual
 
-Neste momento, o repositório contém o plano e a documentação-base para iniciar a implementação e preparar o deploy em monorepo com frontend na Vercel e backend + banco no Render.
+Neste momento, o repositório já possui o setup inicial funcional de frontend e backend, além da documentação-base para continuar a implementação e preparar o deploy em monorepo com frontend na Vercel e backend + banco no Render.
