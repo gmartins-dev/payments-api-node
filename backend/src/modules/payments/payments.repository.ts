@@ -1,6 +1,5 @@
-import type { PoolClient } from 'pg'
-
-import { db } from '../../config/db.js'
+import { getDb } from '../../config/db.js'
+import type { DatabaseClient } from '../../config/db.js'
 import { NotFoundError } from '../../shared/http-errors.js'
 import type { JsonValue, PaymentRow, PaymentStatus, InsertPendingPaymentInput } from './payment.types.js'
 
@@ -19,12 +18,14 @@ interface PaymentRecordRow {
 
 export class PaymentsRepository {
   async isReady() {
+    const db = getDb()
     await db.query('select 1')
 
     return true
   }
 
   async insertPendingPayment(input: InsertPendingPaymentInput): Promise<PaymentRow | null> {
+    const db = getDb()
     const query = `
       insert into payments (
         idempotency_key,
@@ -54,6 +55,7 @@ export class PaymentsRepository {
   }
 
   async findByIdempotencyKey(idempotencyKey: string): Promise<PaymentRow | null> {
+    const db = getDb()
     const query = `
       select
         id,
@@ -104,6 +106,7 @@ export class PaymentsRepository {
     responseBody: JsonValue
     errorCode: string | null
   }): Promise<PaymentRow> {
+    const db = getDb()
     const client = await db.connect()
 
     try {
@@ -166,7 +169,7 @@ function mapPaymentRow(row: PaymentRecordRow): PaymentRow {
   }
 }
 
-async function rollbackQuietly(client: PoolClient) {
+async function rollbackQuietly(client: DatabaseClient) {
   try {
     await client.query('rollback')
   } catch {

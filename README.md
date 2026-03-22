@@ -141,6 +141,27 @@ O módulo foi preparado para testes determinísticos por configuração de:
 - função aleatória
 - função de espera
 
+## Testes automatizados
+
+O backend agora possui cobertura automatizada para os cenários centrais de idempotência e concorrência.
+
+Cenários cobertos:
+
+- criação de novo pagamento com sucesso
+- retry com a mesma `Idempotency-Key` reaproveitando a mesma resposta persistida de sucesso
+- retry com a mesma `Idempotency-Key` reaproveitando a mesma resposta persistida de falha
+- múltiplas requests concorrentes com a mesma chave sem duplicar linha nem processamento
+- request chegando durante `PENDING`, retornando resultado final persistido ou `202` consistente
+
+Estratégia atual de teste:
+
+- Vitest + Supertest para testes HTTP
+- banco de teste PostgreSQL real apontado por `TEST_DATABASE_URL`
+- isolamento por schema efêmero para cada execução de integração
+- processador injetável e controlado manualmente nos cenários críticos de concorrência e `PENDING`
+
+Esses testes verificam tanto o contrato HTTP quanto o estado persistido no banco.
+
 ## Observabilidade
 
 O backend usa:
@@ -163,6 +184,12 @@ Instalar as dependências:
 
 ```bash
 pnpm install
+```
+
+Subir o PostgreSQL local para desenvolvimento e testes:
+
+```bash
+pnpm db:setup
 ```
 
 Subir frontend e backend juntos:
@@ -220,7 +247,33 @@ Comandos úteis:
 ```bash
 pnpm build
 pnpm test
+pnpm test:unit
+pnpm test:integration
 ```
+
+Convenção atual:
+
+- `pnpm test` roda a suíte unitária do backend
+- `pnpm test:integration` roda a prova forte de Sprint 6 contra PostgreSQL real
+
+Comandos auxiliares do banco local:
+
+- `pnpm db:up` sobe o Postgres local via Docker
+- `pnpm db:wait` aguarda o Postgres ficar pronto para conexões
+- `pnpm db:setup` sobe o banco, aguarda readiness e aplica as migrations
+- `pnpm db:down` derruba o Postgres local e remove o volume
+- `pnpm db:logs` acompanha os logs do container
+- `pnpm db:migrate` aplica as migrations em `DATABASE_URL`
+- `pnpm db:migrate:test` aplica as migrations no banco `payments_test`
+
+Para rodar os testes de integração com prova real de concorrência, defina `TEST_DATABASE_URL` para um PostgreSQL acessível:
+
+```bash
+export TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/payments_test
+pnpm test:integration
+```
+
+Sem `TEST_DATABASE_URL`, apenas os testes unitários devem ser considerados executáveis no ambiente local.
 
 ## Por que Render vale a pena neste teste
 

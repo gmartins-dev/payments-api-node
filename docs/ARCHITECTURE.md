@@ -122,6 +122,28 @@ A ordem de middleware é:
 3. rotas
 4. tratamento centralizado de erro
 
+## Estratégia de testes
+
+Os testes automatizados do backend cobrem o fluxo HTTP completo de `POST /payments` com verificação de estado persistido.
+
+Pontos principais:
+
+- uso de Vitest + Supertest
+- banco de teste PostgreSQL real
+- uso de `TEST_DATABASE_URL` para apontar para a instância de teste
+- isolamento por schema efêmero a cada execução
+- aplicação das migrations reais no ambiente de teste
+- injeção de processador determinístico e controlado por barreira manual para controlar sucesso, falha e tempo de processamento
+
+Isso permite provar, de forma automatizada, que:
+
+- apenas uma request vence a ownership do processamento
+- retries reutilizam exatamente a resposta final persistida
+- concorrência não duplica linha nem processamento
+- `PENDING` mantém comportamento limitado e consistente
+
+Esse desenho é preferível a bancos embutidos para o Sprint 6 porque a prova principal do desafio depende de semântica real de PostgreSQL sob múltiplas conexões.
+
 ## Papel do Redis
 
 Redis pode existir como melhoria opcional, mas não como base da correção.
