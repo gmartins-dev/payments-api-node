@@ -21,6 +21,7 @@ export class PaymentsService {
   ) {}
 
   async createPayment(input: CreatePaymentInput, idempotencyKey: string): Promise<{ statusCode: number; body: PaymentApiResponse }> {
+    // A fonte de verdade é o Postgres: quem inserir primeiro vence a ownership.
     const inserted = await this.repository.insertPendingPayment({
       ...input,
       idempotencyKey
@@ -37,16 +38,19 @@ export class PaymentsService {
 
     this.assertSamePayload(existing, input)
 
+    // Retries nunca recalculam o resultado: reaproveitam exatamente o que foi persistido.
     if (existing.status === 'SUCCESS' || existing.status === 'FAILED') {
       return replayPersistedResponse(existing)
     }
 
+    // Polling curto evita estado em memória e dá chance de devolver o resultado final sem lock distribuído.
     const completed = await this.waitForCompletion(idempotencyKey, input)
     if (completed) {
       return replayPersistedResponse(completed)
     }
 
     return {
+      // 202 deixa explícito que já existe uma request dona do processamento, mas ainda sem estado final persistido.
       statusCode: 202,
       body: {
         paymentId: existing.id,
@@ -58,6 +62,7 @@ export class PaymentsService {
   private async processOwnedPayment(payment: PaymentRow, input: CreatePaymentInput) {
     try {
       const processed = await this.processor.process(input, payment.id)
+      // A resposta final é persistida antes do retorno para que todo retry reaproveite o mesmo contrato.
       const saved = await this.repository.markSuccess(payment.id, 200, processed)
 
       return replayPersistedResponse(saved)
@@ -78,6 +83,7 @@ export class PaymentsService {
     const deadline = Date.now() + (this.options.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS)
 
     while (Date.now() < deadline) {
+      // Limites explícitos evitam espera indefinida e deixam o comportamento previsível para cliente e testes.
       await (this.options.sleepFn ?? sleep)(this.options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS)
 
       const payment = await this.repository.findByIdempotencyKey(idempotencyKey)
@@ -96,6 +102,7 @@ export class PaymentsService {
   }
 
   private assertSamePayload(payment: PaymentRow, input: CreatePaymentInput) {
+    // Reusar a mesma chave com payload diferente quebra a semântica de idempotência e precisa falhar.
     if (payment.amount !== input.amount || payment.customerId !== input.customerId) {
       throw new ConflictError('Idempotency-Key cannot be reused with a different payload')
     }
@@ -107,6 +114,7 @@ function replayPersistedResponse(payment: PaymentRow): { statusCode: number; bod
     throw new NotFoundError('Cannot replay a payment response that is not finalized')
   }
 
+  // O replay só é seguro porque status HTTP e body final foram persistidos juntos.
   if (payment.responseStatusCode === null || payment.responseBody === null || !isPersistedPaymentResponse(payment.responseBody)) {
     throw new NotFoundError('Persisted payment response is incomplete')
   }

@@ -20,6 +20,7 @@ export class PaymentProcessor {
   constructor(private readonly config: PaymentProcessorConfig = {}) {}
 
   async process(input: CreatePaymentInput, paymentId: string): Promise<PaymentSuccessResponse> {
+    // O processador simula latência real, mas a correção da idempotência continua 100% no banco.
     const delayMs = this.generateDelay()
     await (this.config.sleepFn ?? sleep)(delayMs)
 
@@ -50,6 +51,7 @@ export class PaymentProcessor {
   }
 
   private shouldFail() {
+    // A falha configurável existe para provar replay de erro sem depender de comportamento aleatório em teste.
     return this.random() < (this.config.failureRate ?? DEFAULT_FAILURE_RATE)
   }
 

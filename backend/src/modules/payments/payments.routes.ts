@@ -95,6 +95,7 @@ export function createPaymentHandler(paymentsController: PaymentsController) {
       }
 
       req.body = bodyResult.data
+      // A chave validada entra em res.locals para ficar disponível no controller, logs e tratamento de erro.
       res.locals.idempotencyKey = headerResult.data['idempotency-key']
 
       await paymentsController.create(req as Request<unknown, unknown, typeof bodyResult.data>, res)

@@ -48,6 +48,7 @@ export class PaymentsRepository {
         updated_at
     `
 
+    // UNIQUE(idempotency_key) + ON CONFLICT DO NOTHING garante que só uma request cria o PENDING inicial.
     const result = await db.query<PaymentRecordRow>(query, [input.idempotencyKey, input.amount, input.customerId])
     const row = result.rows[0]
 
@@ -110,6 +111,7 @@ export class PaymentsRepository {
     const client = await db.connect()
 
     try {
+      // O write final fica em transação para persistir status e body como uma única transição observável.
       await client.query('begin')
 
       const result = await client.query<PaymentRecordRow>(
@@ -173,6 +175,6 @@ async function rollbackQuietly(client: DatabaseClient) {
   try {
     await client.query('rollback')
   } catch {
-    // Ignore rollback errors and rethrow the original failure path.
+    // Preserva o erro original do fluxo principal, que é mais útil para diagnóstico.
   }
 }

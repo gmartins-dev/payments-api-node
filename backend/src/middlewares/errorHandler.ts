@@ -7,6 +7,7 @@ import { AppError } from '../shared/http-errors.js'
 export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction) {
   const normalizedError = normalizeError(error)
 
+  // Mesmo em erro, requestId e idempotencyKey precisam aparecer juntos para revisão e troubleshooting.
   logger.error(
     {
       err: normalizedError,
@@ -17,6 +18,7 @@ export function errorHandler(error: unknown, _req: Request, res: Response, _next
     'Unhandled request error'
   )
 
+  // Mantém um contrato de erro estável e rastreável para cliente e logs.
   res.status(normalizedError.statusCode).json({
     code: normalizedError.code,
     message: normalizedError.message,

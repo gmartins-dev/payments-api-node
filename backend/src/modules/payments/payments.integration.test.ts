@@ -117,6 +117,7 @@ describe.sequential('POST /payments integration', () => {
       )
     )
 
+    // Espera o vencedor entrar no processador antes de liberar o resultado e observar as demais requests em paralelo.
     await processor.waitUntilCalledTimes(1)
     await delay(25)
     processor.resolveSuccess(payload)
@@ -151,6 +152,7 @@ describe.sequential('POST /payments integration', () => {
       request(app).post('/payments').set('Idempotency-Key', 'pending-1').send(payload)
     )
 
+    // Garante que a segunda request chega enquanto a primeira ainda é dona exclusiva do processamento.
     await processor.waitUntilCalledTimes(1)
 
     const second = await request(app).post('/payments').set('Idempotency-Key', 'pending-1').send(payload)
@@ -191,6 +193,7 @@ async function createTestApp(options: {
     await database.close()
   }
 
+  // Os testes de concorrência usam Postgres real porque a semântica de conflito precisa ser a do banco de verdade.
   const repository = new PaymentsRepository()
   const service = new PaymentsService(repository, options.processor as never, {
     pollIntervalMs: options.pollIntervalMs,
@@ -214,6 +217,7 @@ async function delay(ms: number) {
 class ControlledProcessor {
   readonly process = vi.fn(async (input: CreatePaymentInput, paymentId: string): Promise<PaymentSuccessResponse> => {
     return await new Promise<PaymentSuccessResponse>((resolve) => {
+      // Essa barreira manual evita falso positivo de timing e deixa a janela de concorrência sob controle do teste.
       this.pendingResolutions.push(() =>
         resolve({
           paymentId,
