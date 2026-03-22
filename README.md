@@ -123,6 +123,21 @@ Resposta esperada:
 {"status":"ok"}
 ```
 
+Teste rápido do módulo de pagamentos:
+
+```bash
+curl -i -X POST http://localhost:3000/payments \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: setup-check' \
+  -d '{"amount":100,"customerId":"customer-1"}'
+```
+
+Resposta esperada no estado atual:
+
+- status `501 Not Implemented`
+- corpo JSON controlado pela camada `payments`
+- validação de body e header já conectada
+
 Comandos úteis:
 
 ```bash
@@ -171,3 +186,12 @@ Uma forma madura de documentar isso é registrar no README algo como:
 ## Status atual
 
 Neste momento, o repositório já possui o setup inicial funcional de frontend e backend, além da documentação-base para continuar a implementação e preparar o deploy em monorepo com frontend na Vercel e backend + banco no Render.
+
+No backend, a fase inicial de scaffold já inclui:
+
+- `GET /health`
+- módulo `payments` conectado por rota, controller, service, repository, schemas e processor
+- validação inicial com `zod`
+- request context
+- error handler centralizado
+- logging HTTP com `pino-http`

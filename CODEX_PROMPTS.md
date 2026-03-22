@@ -18,6 +18,37 @@ This file organizes implementation prompts by sprint to build the project from z
 - Only `ARCHITECTURE.md` and `README.md` must be written in Brazilian Portuguese (`pt-BR`).
 - Code, comments, UI copy, logs, technical identifiers, dependency names, env vars, headers, and AI instructions may remain in English unless you explicitly decide otherwise during implementation.
 
+## Implementation progress
+
+### Phase 1 completed — Initial monorepo setup
+
+The initial setup has already been implemented and verified.
+
+Completed scope:
+- root `pnpm` workspace configured
+- `backend/` scaffolded with TypeScript, Express, `pg`, `zod`, `pino`, `pino-http`, `dotenv`, `tsx`, and Vitest
+- `frontend/` scaffolded with React 19, Vite 7, and Tailwind CSS v4
+- root scripts added for:
+  - `pnpm dev`
+  - `pnpm backend`
+  - `pnpm frontend`
+  - `pnpm build`
+  - `pnpm test`
+- backend `GET /health` endpoint implemented
+- backend request context and centralized error handler baseline implemented
+- frontend initial screen implemented
+- `README.md` and `ARCHITECTURE.md` updated for the current hosting strategy
+
+Verification already completed:
+- workspace dependencies installed successfully
+- backend build passed
+- frontend build passed
+- backend test suite passed
+- backend local health endpoint returned `200` with `{ "status": "ok" }`
+- frontend local Vite app started successfully
+
+Next implementation phase starts from database modeling and the real payment flow.
+
 ## Sprint 0 — Foundation and repo setup
 
 ### Goal
@@ -54,6 +85,10 @@ Deliverables:
 - Initial ARCHITECTURE skeleton
 Output full files.
 ```
+
+### Status
+
+Completed.
 
 ## Sprint 1 — Backend scaffold
 
@@ -107,6 +142,10 @@ Also generate:
 Output all files with full code.
 ```
 
+### Status
+
+Completed.
+
 ## Sprint 2 — Database schema and repository layer
 
 ### Goal
@@ -132,12 +171,17 @@ Requirements:
   - created_at timestamptz not null default now()
 - updated_at timestamptz not null default now()
 - Provide SQL migration files
+- Add explicit indexing strategy:
+  - `UNIQUE(idempotency_key)`
+  - `INDEX(status)`
+  - `INDEX(customer_id)`
 - Implement a repository using pg with these methods:
   - insertPendingPayment(input)
   - findByIdempotencyKey(key)
   - markSuccess(id, responseStatusCode, responseBody)
   - markFailed(id, responseStatusCode, responseBody, errorCode)
 - insertPendingPayment must use INSERT ... ON CONFLICT DO NOTHING RETURNING *
+- Make the final persistence path transaction-safe where needed
 - Keep types explicit and safe
 - Write any architecture or README updates in Brazilian Portuguese (pt-BR)
 - Code, comments, SQL notes, and identifiers may remain in English
@@ -171,8 +215,15 @@ Behavior:
 - If insert succeeds, this request owns processing
 - If insert conflicts, load the existing record
 - If existing record is SUCCESS or FAILED, return the exact persisted result
-- If existing record is PENDING, poll the database for up to 3 seconds waiting for completion
+- If existing record is PENDING, poll the database every 100ms for up to 3 seconds waiting for completion
 - If still PENDING after timeout, return HTTP 202 with a pending body
+- Return HTTP 200 for persisted SUCCESS and FAILED responses
+- Persist the exact HTTP status code and response body used in the final response
+- Use transaction boundaries for the final state write path when marking SUCCESS or FAILED
+- Rely on PostgreSQL atomicity and unique constraints rather than explicit distributed locks or elevated isolation levels
+- Rely on PostgreSQL read-after-write consistency guarantees for polling correctness
+- Avoid eventual consistency issues by keeping all payment state transitions inside the same database
+- Reject mismatched payloads for the same Idempotency-Key in the production-oriented design notes
 
 Implementation requirements:
 - Add payment service
@@ -185,6 +236,9 @@ Implementation requirements:
   }
 - Validate Idempotency-Key header
 - Return consistent response bodies
+- Make the polling interval and timeout explicit in code as configurable constants
+- Add an architecture note that production systems may apply an idempotency key retention window, for example 24 hours
+- Make the `updated_at` strategy explicit, either with a database trigger or manual updates in the repository layer
 - Write any ARCHITECTURE.md and README.md updates in Brazilian Portuguese (pt-BR)
 - Code, comments, responses, logs, enums, field names, identifiers, and protocol-level technical names may stay in English
 
@@ -278,6 +332,8 @@ Implementation notes:
 - Use a test database
 - Make tests deterministic by mocking or injecting the payment processor behavior
 - Verify database state in assertions
+- Verify that only one request wins ownership of processing
+- Verify HTTP 200 for persisted final states and HTTP 202 for pending timeout cases
 - Write any ARCHITECTURE.md and README.md updates in Brazilian Portuguese (pt-BR)
 - Code, test descriptions, comments, helper text, helper names, and technical symbols may remain in English
 
@@ -372,6 +428,14 @@ ARCHITECTURE.md must include:
 - Key design decisions
 - Why PostgreSQL is the source of truth for idempotency
 - How concurrency is handled
+- Why the solution relies on PostgreSQL atomicity and unique constraints instead of explicit distributed locks
+- Why PostgreSQL read-after-write consistency is sufficient for polling correctness
+- Why the design avoids eventual consistency by keeping state transitions in one database
+- HTTP contract decisions for `200` versus `202`
+- Polling strategy for `PENDING`
+- `updated_at` maintenance strategy
+- Optional production note about idempotency key retention window
+- Optional production note about rejecting mismatched payloads for a reused Idempotency-Key
 - Neon pooling guidance and why double pooling should be avoided
 
 README.md must include:
@@ -407,6 +471,11 @@ Review goals:
 - Confirm that Redis is optional and not used as the primary locking/idempotency mechanism
 - Verify that retries return the same persisted HTTP status and response body
 - Verify that concurrent requests with the same Idempotency-Key do not duplicate processing
+- Verify that final state writes are transaction-safe
+- Verify that `PENDING` polling behavior is explicit and bounded
+- Verify that `200` versus `202` behavior is documented and implemented consistently
+- Verify that the architecture explains read-after-write assumptions clearly
+- Verify that the architecture avoids eventual consistency in the critical payment flow
 - Review deployment setup clarity
 - Review ARCHITECTURE.md clarity
 - Review README.md clarity
@@ -422,24 +491,33 @@ Output:
 
 ### Architecture and correctness
 
-- [ ] PostgreSQL is the source of truth for idempotency
+- [x] PostgreSQL is the source of truth for idempotency
 - [ ] `UNIQUE(idempotency_key)` exists on `payments`
 - [ ] The flow uses `INSERT ... ON CONFLICT DO NOTHING RETURNING *`
 - [ ] Only the request that inserted the row processes the payment
 - [ ] Retries return the exact persisted `response_status_code` and `response_body`
 - [ ] Failure results are also persisted and reused
 - [ ] `PENDING` is handled with short polling and a consistent response
-- [ ] Redis is not used as the primary correctness mechanism
+- [x] Redis is not used as the primary correctness mechanism
+- [ ] Final persistence path uses transactions where needed
+- [ ] `PENDING` polling uses an explicit interval and timeout
+- [ ] HTTP `200` for final states and `202` for pending is implemented consistently
+- [ ] Architecture documents reliance on PostgreSQL atomicity and unique constraints
+- [ ] Architecture documents PostgreSQL read-after-write consistency for polling correctness
+- [ ] Architecture documents avoidance of eventual consistency in the critical payment flow
+- [ ] `updated_at` strategy is explicit
+- [ ] Optional idempotency key retention window is documented
+- [ ] Optional production note about rejecting mismatched payload reuse is documented
 
 ### Backend
 
-- [ ] `GET /health` implemented
+- [x] `GET /health` implemented
 - [ ] `POST /payments` implemented
 - [ ] Body validation with `zod`
 - [ ] `Idempotency-Key` header validation
-- [ ] Request context middleware implemented
-- [ ] Centralized error handler implemented
-- [ ] Logs include `requestId` and `idempotencyKey`
+- [x] Request context middleware implemented
+- [x] Centralized error handler implemented
+- [x] Logs include `requestId` and `idempotencyKey`
 
 ### Database and persistence
 
@@ -451,6 +529,7 @@ Output:
 
 ### Tests
 
+- [x] Initial setup smoke test implemented
 - [ ] Initial success test implemented
 - [ ] Retry with same persisted success result implemented
 - [ ] Retry after failure implemented
@@ -460,6 +539,7 @@ Output:
 
 ### Frontend
 
+- [x] Initial frontend setup implemented
 - [ ] Form with `amount`, `customerId`, and `idempotencyKey`
 - [ ] Create payment action
 - [ ] Retry same request action
@@ -468,17 +548,17 @@ Output:
 
 ### Environment
 
-- [ ] Frontend deployment path on Vercel is documented
-- [ ] Backend deployment path on Render is documented
-- [ ] PostgreSQL setup on Render is documented
-- [ ] `.env.example` files available
-- [ ] `README.md` explains local execution and Neon configuration
+- [x] Frontend deployment path on Vercel is documented
+- [x] Backend deployment path on Render is documented
+- [x] PostgreSQL setup on Render is documented
+- [x] `.env.example` files available
+- [x] `README.md` explains local execution and Neon configuration
 - [ ] `ARCHITECTURE.md` and `README.md` document Neon pooling and double pooling concerns
 
 ### Delivery quality
 
 - [ ] `ARCHITECTURE.md` is clear, technical, and objective in `pt-BR`
-- [ ] `README.md` is clear, practical, and objective in `pt-BR`
+- [x] `README.md` is clear, practical, and objective in `pt-BR`
 - [ ] The project can be evaluated without extra verbal explanation
 - [ ] The scope is strong without overengineering
 - [ ] The main value demonstration is correctness under idempotency and concurrency
