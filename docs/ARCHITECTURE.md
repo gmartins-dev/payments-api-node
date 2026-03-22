@@ -52,6 +52,18 @@ Essa abordagem garante:
 - replay da mesma resposta final em retries
 - consistência mesmo sob concorrência real entre requests
 
+## Modelagem da persistência
+
+O modelo inicial do banco usa:
+
+- enum `payment_status`
+- tabela `payments`
+- `UNIQUE(idempotency_key)`
+- índice por `status`
+- índice por `customer_id`
+
+Além disso, a coluna `updated_at` existe desde a primeira migration e é mantida por trigger no banco. Isso reduz risco de inconsistência entre caminhos de escrita e mantém a atualização de timestamp protegida no nível da persistência.
+
 ## Fluxo do backend
 
 Fluxo esperado do `POST /payments`:

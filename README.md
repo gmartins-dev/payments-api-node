@@ -80,6 +80,23 @@ REDIS_URL=redis://localhost:6379
 
 `REDIS_URL` pode ser opcional se Redis não fizer parte da primeira versão em produção.
 
+## Modelagem atual do banco
+
+Na Sprint 2, a base de persistência foi definida com:
+
+- enum `payment_status` com `PENDING`, `SUCCESS` e `FAILED`
+- tabela `payments`
+- `UNIQUE(idempotency_key)` como mecanismo central de deduplicação
+- índice por `status`
+- índice por `customer_id`
+
+Os arquivos SQL de migração ficam em:
+
+- `backend/src/migrations/001_create_payments.sql`
+- `backend/src/migrations/002_add_payments_updated_at_trigger.sql`
+
+Nesta etapa, `updated_at` fica garantido por trigger no banco. Isso reduz o risco de inconsistência entre diferentes caminhos de escrita.
+
 ## Como rodar localmente
 
 Instalar as dependências:
