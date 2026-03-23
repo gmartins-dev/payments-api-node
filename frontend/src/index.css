@@ -108,6 +108,18 @@ body {
 	box-sizing: border-box;
 }
 
+a[href],
+button,
+[role="button"],
+summary {
+	cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+	cursor: not-allowed;
+}
+
 pre {
 	margin: 0;
 	font-family: var(--font-mono);
