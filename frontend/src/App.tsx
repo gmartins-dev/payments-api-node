@@ -48,37 +48,37 @@ export function App() {
 					<div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
 						<div className="max-w-3xl space-y-4">
 							<p className="text-xs font-semibold uppercase tracking-[0.38em] text-[var(--color-accent)]">
-								Payment Idempotency Demo
+								Demo de Idempotência em Pagamentos
 							</p>
 							<h1 className="font-display text-4xl leading-tight text-white sm:text-5xl">
-								One key, one persisted outcome, no duplicate processing.
+								Uma chave, um resultado persistido, nenhum processamento duplicado.
 							</h1>
 							<p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-								Inspect the full request lifecycle, replay the same idempotency key, and compare
-								parallel requests without leaving the UI.
+								Acompanhe o ciclo completo da requisição, repita a mesma chave de idempotência e
+								compare requisições paralelas sem sair da interface.
 							</p>
 						</div>
 
 						<div className="flex w-full flex-col gap-4 xl:max-w-3xl xl:items-end">
 							<Button asChild className="self-start xl:self-auto" size="sm" variant="outline">
 								<a href={apiDocsUrl} rel="noreferrer" target="_blank">
-									API Docs
+									Docs da API
 								</a>
 							</Button>
 
 							<div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-5">
-								<Metric label="Backend target" value={apiUrl.replace(/^https?:\/\//, '')} />
-								<Metric label="Latest outcome" value={formatStageLabel(latestOutcome)} />
-								<Metric label="Response time" value={formatDuration(latestResponseTime)} />
+								<Metric label="Alvo da API" value={apiUrl.replace(/^https?:\/\//, '')} />
+								<Metric label="Último resultado" value={formatStageLabel(latestOutcome)} />
+								<Metric label="Tempo de resposta" value={formatDuration(latestResponseTime)} />
 								<Metric
-									label="Requests"
+									label="Requisições"
 									value={String(
 										groupedAttempts.reduce((sum, group) => sum + group.totalRequests, 0),
 									)}
 								/>
 								<Metric
-									label="Last updated"
-									value={lastUpdated ? formatTimestamp(lastUpdated) : 'No requests yet'}
+									label="Última atualização"
+									value={lastUpdated ? formatTimestamp(lastUpdated) : 'Ainda sem requisições'}
 								/>
 							</div>
 						</div>
@@ -88,15 +88,15 @@ export function App() {
 				<section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
 					<Card className="reveal">
 						<CardHeader>
-							<CardTitle>Payment playground</CardTitle>
+							<CardTitle>Laboratório de pagamentos</CardTitle>
 							<CardDescription>
-								Use the same idempotency key to prove persisted replay or send two requests in
-								parallel to inspect concurrency safety.
+								Use a mesma chave de idempotência para provar a resposta persistida ou envie duas
+								requisições em paralelo para inspecionar a segurança de concorrência.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-6">
 							<div className="grid gap-4 md:grid-cols-3">
-								<Field htmlFor="payment-amount" label="Amount">
+								<Field htmlFor="payment-amount" label="Valor">
 									<Input
 										id="payment-amount"
 										inputMode="decimal"
@@ -105,25 +105,25 @@ export function App() {
 										value={form.amount}
 									/>
 								</Field>
-								<Field htmlFor="payment-customer-id" label="Customer ID">
+								<Field htmlFor="payment-customer-id" label="ID do cliente">
 									<Input
 										id="payment-customer-id"
 										onChange={(event) => setFormField('customerId', event.target.value)}
-										placeholder="customer-1"
+										placeholder="cliente-1"
 										value={form.customerId}
 									/>
 								</Field>
 								<Field
-									description="Same key = same result (idempotent)"
+									description="Mesma chave = mesmo resultado (idempotente)"
 									htmlFor="payment-idempotency-key"
-									label="Idempotency key"
+									label="Chave de idempotência"
 								>
 									<div className="flex gap-2">
 										<Input
 											className="flex-1"
 											id="payment-idempotency-key"
 											onChange={(event) => setFormField('idempotencyKey', event.target.value)}
-											placeholder="payment-demo-001"
+											placeholder="pagamento-demo-001"
 											value={form.idempotencyKey}
 										/>
 										<Button
@@ -133,7 +133,7 @@ export function App() {
 											size="sm"
 											variant="outline"
 										>
-											New key
+											Nova chave
 										</Button>
 									</div>
 								</Field>
@@ -143,8 +143,8 @@ export function App() {
 								<Button className="md:flex-1" disabled={isBusy} onClick={handleCreatePayment}>
 									<ButtonLabel
 										isLoading={isBusy && liveFlow.actionType === 'CREATE'}
-										label="Create payment"
-										loadingLabel="Processing..."
+										label="Criar pagamento"
+										loadingLabel="Processando..."
 									/>
 								</Button>
 								<Button
@@ -155,8 +155,8 @@ export function App() {
 								>
 									<ButtonLabel
 										isLoading={isBusy && liveFlow.actionType === 'REPLAY'}
-										label="Replay same request (same key)"
-										loadingLabel="Replaying..."
+										label="Repetir mesma requisição (mesma chave)"
+										loadingLabel="Repetindo..."
 									/>
 								</Button>
 								<Button
@@ -167,8 +167,8 @@ export function App() {
 								>
 									<ButtonLabel
 										isLoading={isBusy && liveFlow.actionType === 'CONCURRENT'}
-										label="Simulate concurrency (2 parallel requests)"
-										loadingLabel="Running parallel flow..."
+										label="Simular concorrência (2 requisições paralelas)"
+										loadingLabel="Executando fluxo paralelo..."
 									/>
 								</Button>
 							</div>
@@ -181,8 +181,8 @@ export function App() {
 
 							<div className="grid gap-4 lg:grid-cols-2">
 								<JsonPanel
-									caption="Current request payload"
-									title="Request payload"
+									caption="Payload atual da requisição"
+									title="Payload da requisição"
 									value={{
 										amount: requestPayload.amount,
 										customerId: requestPayload.customerId,
@@ -204,10 +204,10 @@ export function App() {
 									caption={
 										latestAttempt
 											? `${latestAttempt.headline}${latestAttempt.requestId ? ` • ${latestAttempt.requestId}` : ''}`
-											: 'No response yet'
+											: 'Sem resposta ainda'
 									}
-									title="Latest response body"
-									value={latestAttempt?.body ?? { status: 'IDLE' }}
+									title="Corpo da última resposta"
+									value={latestAttempt?.body ?? { status: 'AGUARDANDO' }}
 								/>
 							</div>
 						</CardContent>
@@ -215,10 +215,10 @@ export function App() {
 
 					<Card className="reveal">
 						<CardHeader>
-							<CardTitle>Behavior monitor</CardTitle>
+							<CardTitle>Monitor de comportamento</CardTitle>
 							<CardDescription>
-								The UI tracks lifecycle transitions, persisted replays, and the four key idempotency
-								scenarios as they happen.
+								A interface acompanha as transições do ciclo de vida, as respostas persistidas e os
+								quatro cenários-chave de idempotência conforme eles acontecem.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-6">
@@ -226,7 +226,7 @@ export function App() {
 								<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 									<div className="space-y-2">
 										<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-											Live request lifecycle
+											Ciclo de vida da requisição
 										</p>
 										<h3 className="font-display text-2xl text-slate-50">{liveFlow.title}</h3>
 										<p className="max-w-xl text-sm leading-6 text-slate-300">
@@ -236,7 +236,7 @@ export function App() {
 									<div className="flex flex-wrap gap-2">
 										<StageBadge stage={liveFlow.stage} />
 										{liveFlow.actionType ? (
-											<Badge variant="neutral">{liveFlow.actionType}</Badge>
+											<Badge variant="neutral">{formatActionTypeLabel(liveFlow.actionType)}</Badge>
 										) : null}
 									</div>
 								</div>
@@ -247,11 +247,11 @@ export function App() {
 
 								<div className="mt-5 grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
 									<MonitorMeta
-										label="Idempotency key"
-										value={liveFlow.idempotencyKey ?? 'Waiting for the next request'}
+										label="Chave de idempotência"
+										value={liveFlow.idempotencyKey ?? 'Aguardando a próxima requisição'}
 									/>
 									<MonitorMeta
-										label="Requests settled"
+										label="Requisições concluídas"
 										value={
 											liveFlow.totalRequests > 0
 												? `${liveFlow.completedRequests}/${liveFlow.totalRequests}`
@@ -259,15 +259,15 @@ export function App() {
 										}
 									/>
 									<MonitorMeta
-										label="Updated"
-										value={liveFlow.updatedAt ? formatTimestamp(liveFlow.updatedAt) : 'Idle'}
+										label="Atualizado"
+										value={liveFlow.updatedAt ? formatTimestamp(liveFlow.updatedAt) : 'Inativo'}
 									/>
 								</div>
 							</div>
 
 							<div className="rounded-[24px] border border-cyan-400/16 bg-cyan-500/8 p-5">
 								<p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">
-									Latest insight
+									Último insight
 								</p>
 								{latestAttempt ? (
 									<div className="mt-3 space-y-3">
@@ -285,8 +285,8 @@ export function App() {
 									</div>
 								) : (
 									<p className="mt-3 text-sm leading-6 text-cyan-50/90">
-										Create a payment to see the request lifecycle, replay indicators, and
-										concurrency insights fill in.
+										Crie um pagamento para ver o ciclo de vida da requisição, os indicadores de
+										resposta persistida e os insights de concorrência aparecerem.
 									</p>
 								)}
 							</div>
@@ -302,16 +302,17 @@ export function App() {
 
 				<Card className="reveal">
 					<CardHeader>
-						<CardTitle>Attempt history</CardTitle>
+						<CardTitle>Histórico de tentativas</CardTitle>
 						<CardDescription>
-							Group requests by idempotency key and inspect whether each response was freshly
-							processed, replayed from storage, or shared by concurrent requests.
+							Agrupe as requisições por chave de idempotência e inspecione se cada resposta foi
+							processada do zero, reproduzida a partir do armazenamento ou compartilhada por
+							requisições concorrentes.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						{groupedAttempts.length === 0 ? (
 							<div className="rounded-[24px] border border-dashed border-white/12 bg-slate-950/50 p-6 text-sm leading-6 text-slate-400">
-								No requests yet. Create a payment to see idempotency in action.
+								Nenhuma requisição ainda. Crie um pagamento para ver a idempotência em ação.
 							</div>
 						) : (
 							<div className="space-y-4">
@@ -415,10 +416,10 @@ function LifecycleRail({
 	stage: 'IDLE' | 'REQUEST_CREATED' | 'PENDING' | 'SUCCESS' | 'FAILED'
 }) {
 	const steps = [
-		{ key: 'REQUEST_CREATED', label: 'Request created' },
-		{ key: 'PENDING', label: 'Pending' },
-		{ key: 'SUCCESS', label: 'Success' },
-		{ key: 'FAILED', label: 'Failed' },
+		{ key: 'REQUEST_CREATED', label: 'Requisição criada' },
+		{ key: 'PENDING', label: 'Pendente' },
+		{ key: 'SUCCESS', label: 'Sucesso' },
+		{ key: 'FAILED', label: 'Falha' },
 	] as const
 
 	return (
@@ -449,7 +450,7 @@ function LifecycleRail({
 							</div>
 							<div>
 								<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-									Step {index + 1}
+									Etapa {index + 1}
 								</p>
 								<p className="mt-1 text-sm font-medium text-slate-100">{step.label}</p>
 							</div>
@@ -493,8 +494,8 @@ function ScenarioCard({
 			<p className="mt-4 text-sm leading-6 text-slate-200">{scenario.message}</p>
 			<p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
 				{scenario.observedAt
-					? `Updated ${formatTimestamp(scenario.observedAt)}`
-					: 'Waiting to observe'}
+					? `Atualizado em ${formatTimestamp(scenario.observedAt)}`
+					: 'Aguardando observação'}
 			</p>
 		</article>
 	)
@@ -505,17 +506,19 @@ function AttemptGroupCard({ group }: { group: AttemptGroup }) {
 		<article className="rounded-[28px] border border-white/10 bg-slate-950/55 p-5 shadow-[0_18px_40px_rgba(2,6,23,0.3)] history-enter">
 			<div className="flex flex-col gap-4 border-b border-white/8 pb-4 lg:flex-row lg:items-start lg:justify-between">
 				<div className="space-y-2">
-					<p className="text-xs uppercase tracking-[0.24em] text-slate-500">Idempotency key</p>
+					<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+						Chave de idempotência
+					</p>
 					<h3 className="break-all font-display text-2xl text-white">{group.idempotencyKey}</h3>
 					<p className="text-sm leading-6 text-slate-400">
-						{group.totalRequests} request{group.totalRequests === 1 ? '' : 's'} • last updated{' '}
-						{formatTimestamp(group.latestAt)}
+						{group.totalRequests} {group.totalRequests === 1 ? 'requisição' : 'requisições'} •
+						última atualização {formatTimestamp(group.latestAt)}
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
 					<OutcomeBadge outcome={group.latestOutcome} />
-					{group.hasReplay ? <Badge variant="info">Persisted replay</Badge> : null}
-					{group.hasSharedOutcome ? <Badge variant="info">Shared outcome</Badge> : null}
+					{group.hasReplay ? <Badge variant="info">Resposta persistida</Badge> : null}
+					{group.hasSharedOutcome ? <Badge variant="info">Resultado compartilhado</Badge> : null}
 				</div>
 			</div>
 
@@ -551,15 +554,18 @@ function AttemptRow({ attempt, defaultOpen }: { attempt: AttemptRecord; defaultO
 				</div>
 
 				<div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-2 lg:min-w-[320px]">
-					<HistoryMeta label="Started" value={formatTimestamp(attempt.createdAt)} />
-					<HistoryMeta label="Elapsed" value={formatDuration(attempt.elapsedMs)} />
-					<HistoryMeta label="Request ID" value={attempt.requestId ?? 'Pending or unavailable'} />
+					<HistoryMeta label="Início" value={formatTimestamp(attempt.createdAt)} />
+					<HistoryMeta label="Duração" value={formatDuration(attempt.elapsedMs)} />
 					<HistoryMeta
-						label="Polling"
+						label="ID da requisição"
+						value={attempt.requestId ?? 'Pendente ou indisponível'}
+					/>
+					<HistoryMeta
+						label="Consultas"
 						value={
 							attempt.pollCount > 0
-								? `${attempt.pollCount} follow-up request${attempt.pollCount === 1 ? '' : 's'}`
-								: 'No client polling'
+								? `${attempt.pollCount} ${attempt.pollCount === 1 ? 'requisição' : 'requisições'} de acompanhamento`
+								: 'Sem consultas automáticas do cliente'
 						}
 					/>
 				</div>
@@ -570,19 +576,21 @@ function AttemptRow({ attempt, defaultOpen }: { attempt: AttemptRecord; defaultO
 				open={defaultOpen}
 			>
 				<summary className="cursor-pointer list-none text-sm font-medium text-slate-100 [&::-webkit-details-marker]:hidden">
-					View payload and response JSON
+					Ver payload e resposta em JSON
 				</summary>
 				<div className="mt-4 grid gap-4 xl:grid-cols-2">
 					<div>
-						<p className="text-xs uppercase tracking-[0.22em] text-slate-500">Request payload</p>
+						<p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+							Payload da requisição
+						</p>
 						<div className="mt-2 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-200">
 							<pre>{formatJson(attempt.requestPayload)}</pre>
 						</div>
 					</div>
 					<div>
-						<p className="text-xs uppercase tracking-[0.22em] text-slate-500">Response body</p>
+						<p className="text-xs uppercase tracking-[0.22em] text-slate-500">Corpo da resposta</p>
 						<div className="mt-2 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-200">
-							<pre>{formatJson(attempt.body ?? { status: 'PENDING' })}</pre>
+							<pre>{formatJson(attempt.body ?? { status: 'PENDENTE' })}</pre>
 						</div>
 					</div>
 				</div>
@@ -601,39 +609,39 @@ function HistoryMeta({ label, value }: { label: string; value: string }) {
 }
 
 function ActionBadge({ actionType }: { actionType: AttemptRecord['actionType'] }) {
-	return <Badge variant="neutral">{actionType}</Badge>
+	return <Badge variant="neutral">{formatActionTypeLabel(actionType)}</Badge>
 }
 
 function OutcomeBadge({ outcome }: { outcome: 'FAILED' | 'IDLE' | 'PENDING' | 'SUCCESS' }) {
 	if (outcome === 'SUCCESS') {
-		return <Badge variant="success">SUCCESS</Badge>
+		return <Badge variant="success">SUCESSO</Badge>
 	}
 
 	if (outcome === 'FAILED') {
-		return <Badge variant="destructive">FAILED</Badge>
+		return <Badge variant="destructive">FALHA</Badge>
 	}
 
 	if (outcome === 'PENDING') {
-		return <Badge variant="pending">PENDING</Badge>
+		return <Badge variant="pending">PENDENTE</Badge>
 	}
 
-	return <Badge variant="neutral">IDLE</Badge>
+	return <Badge variant="neutral">INATIVO</Badge>
 }
 
 function ResultModeBadge({ attempt }: { attempt: AttemptRecord }) {
 	if (attempt.resultMode === 'REUSED') {
-		return <Badge variant="info">Reused result</Badge>
+		return <Badge variant="info">Resultado reutilizado</Badge>
 	}
 
 	if (attempt.resultMode === 'SHARED') {
-		return <Badge variant="info">Shared outcome</Badge>
+		return <Badge variant="info">Resultado compartilhado</Badge>
 	}
 
 	if (attempt.resultMode === 'WAITING') {
-		return <Badge variant="pending">Processing</Badge>
+		return <Badge variant="pending">Processando</Badge>
 	}
 
-	return <Badge variant="success">Processed</Badge>
+	return <Badge variant="success">Processado</Badge>
 }
 
 function StageBadge({
@@ -642,34 +650,34 @@ function StageBadge({
 	stage: 'FAILED' | 'IDLE' | 'PENDING' | 'REQUEST_CREATED' | 'SUCCESS'
 }) {
 	if (stage === 'FAILED') {
-		return <Badge variant="destructive">FAILED</Badge>
+		return <Badge variant="destructive">FALHA</Badge>
 	}
 
 	if (stage === 'SUCCESS') {
-		return <Badge variant="success">SUCCESS</Badge>
+		return <Badge variant="success">SUCESSO</Badge>
 	}
 
 	if (stage === 'PENDING') {
-		return <Badge variant="pending">PENDING</Badge>
+		return <Badge variant="pending">PENDENTE</Badge>
 	}
 
 	if (stage === 'REQUEST_CREATED') {
-		return <Badge variant="info">REQUEST CREATED</Badge>
+		return <Badge variant="info">REQUISIÇÃO CRIADA</Badge>
 	}
 
-	return <Badge variant="neutral">IDLE</Badge>
+	return <Badge variant="neutral">INATIVO</Badge>
 }
 
 function ScenarioStatusBadge({ status }: { status: 'active' | 'idle' | 'observed' }) {
 	if (status === 'observed') {
-		return <Badge variant="info">Observed</Badge>
+		return <Badge variant="info">Observado</Badge>
 	}
 
 	if (status === 'active') {
-		return <Badge variant="pending">Active</Badge>
+		return <Badge variant="pending">Ativo</Badge>
 	}
 
-	return <Badge variant="neutral">Ready</Badge>
+	return <Badge variant="neutral">Pronto</Badge>
 }
 
 function Spinner() {
@@ -679,7 +687,23 @@ function Spinner() {
 }
 
 function formatStageLabel(value: string) {
-	return value.replaceAll('_', ' ')
+	return (
+		{
+			IDLE: 'Inativo',
+			PENDING: 'Pendente',
+			REQUEST_CREATED: 'Requisição criada',
+			SUCCESS: 'Sucesso',
+			FAILED: 'Falha',
+		}[value] ?? value.replaceAll('_', ' ')
+	)
+}
+
+function formatActionTypeLabel(value: 'CONCURRENT' | 'CREATE' | 'REPLAY') {
+	return {
+		CONCURRENT: 'CONCORRÊNCIA',
+		CREATE: 'CRIAÇÃO',
+		REPLAY: 'REPETIÇÃO',
+	}[value]
 }
 
 function isStepComplete(

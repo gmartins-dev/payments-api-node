@@ -110,14 +110,14 @@ export function usePaymentDemo(apiUrl: string) {
 	async function handleCreatePayment() {
 		await runSingleAction({
 			actionType: 'CREATE',
-			label: 'Create payment',
+			label: 'Criar pagamento',
 		})
 	}
 
 	async function handleReplaySameRequest() {
 		await runSingleAction({
 			actionType: 'REPLAY',
-			label: 'Replay same request (same key)',
+			label: 'Repetir mesma requisição (mesma chave)',
 		})
 	}
 
@@ -132,13 +132,13 @@ export function usePaymentDemo(apiUrl: string) {
 		const batchId = crypto.randomUUID()
 		concurrentBatchIdRef.current = batchId
 		const pendingTimer = schedulePendingFlow(
-			'Both requests are in flight. Watch for a shared result or an intermediate PENDING replay.',
+			'As duas requisições estão em andamento. Observe se ambas convergem para um resultado compartilhado ou para uma resposta PENDENTE persistida.',
 		)
 
 		setErrorMessage(null)
 		setLiveFlow({
-			title: 'Simulate concurrency (2 parallel requests)',
-			description: 'Dispatching 2 parallel requests with the same idempotency key.',
+			title: 'Simular concorrência (2 requisições paralelas)',
+			description: 'Disparando 2 requisições paralelas com a mesma chave de idempotência.',
 			stage: 'REQUEST_CREATED',
 			isLoading: true,
 			idempotencyKey: form.idempotencyKey,
@@ -151,7 +151,7 @@ export function usePaymentDemo(apiUrl: string) {
 		updateScenario(
 			'CONCURRENT_REQUESTS',
 			'active',
-			'Dispatching 2 parallel requests with the same idempotency key.',
+			'Disparando 2 requisições paralelas com a mesma chave de idempotência.',
 			startedIso,
 		)
 
@@ -161,7 +161,7 @@ export function usePaymentDemo(apiUrl: string) {
 					actionType: 'CONCURRENT',
 					batchId,
 					idempotencyKey: form.idempotencyKey,
-					label: 'Parallel request A',
+					label: 'Requisição paralela A',
 					payload: requestPayload,
 					requestIndex: 1,
 					totalRequests: 2,
@@ -170,7 +170,7 @@ export function usePaymentDemo(apiUrl: string) {
 					actionType: 'CONCURRENT',
 					batchId,
 					idempotencyKey: form.idempotencyKey,
-					label: 'Parallel request B',
+					label: 'Requisição paralela B',
 					payload: requestPayload,
 					requestIndex: 2,
 					totalRequests: 2,
@@ -198,7 +198,7 @@ export function usePaymentDemo(apiUrl: string) {
 
 		const startedIso = new Date().toISOString()
 		const pendingTimer = schedulePendingFlow(
-			'The backend is processing or replaying the persisted response for this idempotency key.',
+			'A API está processando ou reproduzindo a resposta persistida para esta chave de idempotência.',
 		)
 
 		setErrorMessage(null)
@@ -206,8 +206,8 @@ export function usePaymentDemo(apiUrl: string) {
 			title: label,
 			description:
 				actionType === 'REPLAY'
-					? 'Replaying the same payload and idempotency key to inspect the persisted response.'
-					: 'Sending a payment request to inspect the fresh processing path.',
+					? 'Repetindo o mesmo payload e a mesma chave de idempotência para inspecionar a resposta persistida.'
+					: 'Enviando uma requisição de pagamento para inspecionar o caminho de processamento inicial.',
 			stage: 'REQUEST_CREATED',
 			isLoading: true,
 			idempotencyKey: form.idempotencyKey,
@@ -273,7 +273,7 @@ export function usePaymentDemo(apiUrl: string) {
 				lifecycleStage: 'FAILED',
 				outcome: 'FAILED',
 				resultMode: context.priorTerminal ? 'REUSED' : 'FRESH',
-				headline: 'Unable to reach backend',
+				headline: 'Falha ao acessar a API',
 				detail: message,
 				isLoading: false,
 			}))
@@ -312,9 +312,9 @@ export function usePaymentDemo(apiUrl: string) {
 				lifecycleStage: 'PENDING',
 				outcome: 'PENDING',
 				resultMode: 'WAITING',
-				headline: 'Request already in progress (PENDING)',
+				headline: 'Requisição já em andamento (PENDING)',
 				detail:
-					'A same-key request is already being processed. The UI is polling to fetch the stored final response.',
+					'Uma requisição com a mesma chave já está sendo processada. A interface está fazendo consultas automáticas para buscar a resposta final persistida.',
 				scenarioIds: withScenario(attempt.scenarioIds, 'REQUEST_DURING_PROCESSING'),
 				pollCount: 0,
 				isLoading: true,
@@ -322,14 +322,14 @@ export function usePaymentDemo(apiUrl: string) {
 			updateScenario(
 				'REQUEST_DURING_PROCESSING',
 				'observed',
-				'Request already in progress (PENDING). Polling for the final stored response.',
+				'Requisição já em andamento (PENDING). Fazendo consultas automáticas da resposta final persistida.',
 				now,
 			)
 			setLiveFlow((current) => ({
 				...current,
 				stage: 'PENDING',
 				description:
-					'Request already in progress (PENDING). Polling the same key until a persisted outcome is available.',
+					'Requisição já em andamento (PENDING). Consultando a mesma chave até que um resultado persistido esteja disponível.',
 				updatedAt: now,
 			}))
 
@@ -359,7 +359,7 @@ export function usePaymentDemo(apiUrl: string) {
 			updateScenario(
 				'RETRY_AFTER_SUCCESS',
 				'observed',
-				'Returning persisted SUCCESS (no reprocessing).',
+				'Retornando SUCESSO persistido (sem reprocessamento).',
 				now,
 			)
 		}
@@ -368,7 +368,7 @@ export function usePaymentDemo(apiUrl: string) {
 			updateScenario(
 				'RETRY_AFTER_FAILURE',
 				'observed',
-				'Returning persisted FAILURE (no retry executed).',
+				'Retornando FALHA persistida (nenhuma nova tentativa executada).',
 				now,
 			)
 		}
@@ -406,8 +406,8 @@ export function usePaymentDemo(apiUrl: string) {
 					lifecycleStage: 'PENDING',
 					outcome: 'PENDING',
 					resultMode: 'WAITING',
-					headline: 'Request already in progress (PENDING)',
-					detail: `Still PENDING after poll ${pollCount}. Waiting for the persisted outcome.`,
+					headline: 'Requisição já em andamento (PENDING)',
+					detail: `Ainda em PENDING após a consulta ${pollCount}. Aguardando o resultado persistido.`,
 					pollCount,
 					isLoading: true,
 				}))
@@ -427,16 +427,16 @@ export function usePaymentDemo(apiUrl: string) {
 			lifecycleStage: 'PENDING',
 			outcome: 'PENDING',
 			resultMode: 'WAITING',
-			headline: 'Still pending after short polling',
+			headline: 'Ainda pendente após a consulta curta',
 			detail:
-				'Processing has not reached a terminal state yet. Replay the same key again to fetch the stored response once it finishes.',
+				'O processamento ainda não chegou a um estado final. Repita a mesma chave novamente para buscar a resposta persistida quando ele terminar.',
 			pollCount: CLIENT_POLL_MAX_ATTEMPTS,
 			isLoading: false,
 		}))
 		advanceLiveFlowCompletion('PENDING')
 		finishSingleFlow(
 			'PENDING',
-			'Still waiting on the final stored result. Replay the same key again to check after processing completes.',
+			'Ainda aguardando o resultado final persistido. Repita a mesma chave novamente para consultar após o fim do processamento.',
 		)
 
 		return {
@@ -479,15 +479,15 @@ export function usePaymentDemo(apiUrl: string) {
 			outcome: 'IDLE',
 			resultMode: startedWhilePending ? 'WAITING' : priorTerminal ? 'REUSED' : 'FRESH',
 			headline: startedWhilePending
-				? 'Request created while the same key is still active'
+				? 'Requisição criada enquanto a mesma chave ainda está ativa'
 				: params.actionType === 'REPLAY'
-					? 'Replaying the same idempotency key'
+					? 'Repetindo a mesma chave de idempotência'
 					: params.actionType === 'CONCURRENT'
-						? `Parallel request ${params.requestIndex}`
-						: 'Fresh payment request created',
+						? `Requisição paralela ${params.requestIndex}`
+						: 'Nova requisição de pagamento criada',
 			detail: startedWhilePending
-				? 'A request with this key was already in flight when this attempt started.'
-				: 'Sending the request to the backend.',
+				? 'Já existia uma requisição com esta chave em andamento quando esta tentativa começou.'
+				: 'Enviando a requisição para a API.',
 			scenarioIds,
 			isLoading: true,
 			pollCount: 0,
@@ -500,7 +500,7 @@ export function usePaymentDemo(apiUrl: string) {
 			updateScenario(
 				'REQUEST_DURING_PROCESSING',
 				'active',
-				'Request already in progress (PENDING). Waiting for the same key to settle.',
+				'Requisição já em andamento (PENDING). Aguardando a mesma chave concluir.',
 				startedIso,
 			)
 		}
@@ -532,14 +532,14 @@ export function usePaymentDemo(apiUrl: string) {
 			updateScenario(
 				'CONCURRENT_REQUESTS',
 				'observed',
-				'Parallel requests were sent together, but at least one request is still waiting on a final persisted outcome.',
+				'As requisições paralelas foram enviadas juntas, mas pelo menos uma ainda aguarda um resultado final persistido.',
 				now,
 			)
 			setLiveFlow((current) => ({
 				...current,
 				stage: 'PENDING',
 				description:
-					'Two parallel requests were sent. At least one is still waiting for the final stored response.',
+					'Duas requisições paralelas foram enviadas. Pelo menos uma ainda aguarda a resposta final persistida.',
 				isLoading: false,
 				updatedAt: now,
 				completedRequests: current.totalRequests,
@@ -561,9 +561,9 @@ export function usePaymentDemo(apiUrl: string) {
 							? {
 									...attempt,
 									resultMode: 'SHARED',
-									headline: 'Shared outcome returned',
+									headline: 'Resultado compartilhado retornado',
 									detail:
-										'These parallel requests converged on the same persisted response. The backend processed the payment only once.',
+										'Estas requisições paralelas convergiram para a mesma resposta persistida. A API processou o pagamento apenas uma vez.',
 								}
 							: attempt,
 					),
@@ -571,13 +571,13 @@ export function usePaymentDemo(apiUrl: string) {
 				updateScenario(
 					'CONCURRENT_REQUESTS',
 					'observed',
-					`2 parallel requests returned the same persisted ${outcome}. Only one request processed the payment.`,
+					`2 requisições paralelas retornaram o mesmo ${outcome === 'FAILED' ? 'resultado de FALHA persistido' : 'resultado de SUCESSO persistido'}. Apenas uma processou o pagamento.`,
 					now,
 				)
 				setLiveFlow((current) => ({
 					...current,
 					stage: outcome,
-					description: `2 parallel requests returned the same persisted ${outcome}. Only one request processed the payment.`,
+					description: `2 requisições paralelas retornaram o mesmo ${outcome === 'FAILED' ? 'resultado de FALHA persistido' : 'resultado de SUCESSO persistido'}. Apenas uma processou o pagamento.`,
 					isLoading: false,
 					updatedAt: now,
 					completedRequests: current.totalRequests,
@@ -591,7 +591,7 @@ export function usePaymentDemo(apiUrl: string) {
 		updateScenario(
 			'CONCURRENT_REQUESTS',
 			'observed',
-			'Parallel requests completed. Compare the grouped history to inspect the shared stored response.',
+			'As requisições paralelas foram concluídas. Compare o histórico agrupado para inspecionar a resposta persistida compartilhada.',
 			now,
 		)
 
@@ -599,7 +599,7 @@ export function usePaymentDemo(apiUrl: string) {
 			...current,
 			stage: batchAttempts[0]?.outcome === 'FAILED' ? 'FAILED' : 'SUCCESS',
 			description:
-				'Parallel requests completed. Compare the grouped history to inspect whether the backend replayed the stored outcome.',
+				'As requisições paralelas foram concluídas. Compare o histórico agrupado para verificar se a API reutilizou o resultado persistido.',
 			isLoading: false,
 			updatedAt: now,
 			completedRequests: current.totalRequests,
@@ -752,9 +752,9 @@ function describeFinalResolution(
 	if (context.priorTerminal?.outcome === 'SUCCESS') {
 		return {
 			resultMode: 'REUSED',
-			headline: 'Returning persisted SUCCESS',
-			detail: 'Same key, same stored response. The backend did not reprocess the payment.',
-			flowDescription: 'Returning persisted SUCCESS (no reprocessing).',
+			headline: 'Retornando SUCESSO persistido',
+			detail: 'Mesma chave, mesma resposta armazenada. A API não reprocessou o pagamento.',
+			flowDescription: 'Retornando SUCESSO persistido (sem reprocessamento).',
 			scenarioId: 'RETRY_AFTER_SUCCESS',
 		}
 	}
@@ -762,9 +762,9 @@ function describeFinalResolution(
 	if (context.priorTerminal?.outcome === 'FAILED') {
 		return {
 			resultMode: 'REUSED',
-			headline: 'Returning persisted FAILURE',
-			detail: 'Same key, same stored failure. The backend did not execute a new retry.',
-			flowDescription: 'Returning persisted FAILURE (no retry executed).',
+			headline: 'Retornando FALHA persistida',
+			detail: 'Mesma chave, mesma falha armazenada. A API não executou uma nova tentativa.',
+			flowDescription: 'Retornando FALHA persistida (nenhuma nova tentativa executada).',
 			scenarioId: 'RETRY_AFTER_FAILURE',
 		}
 	}
@@ -774,16 +774,16 @@ function describeFinalResolution(
 			resultMode: 'REUSED',
 			headline:
 				outcome === 'SUCCESS'
-					? 'Processing finished. Returning persisted SUCCESS'
-					: 'Processing finished. Returning persisted FAILURE',
+					? 'Processamento concluído. Retornando SUCESSO persistido'
+					: 'Processamento concluído. Retornando FALHA persistida',
 			detail:
 				outcome === 'SUCCESS'
-					? 'This request first observed PENDING and then received the stored SUCCESS response.'
-					: 'This request first observed PENDING and then received the stored FAILURE response.',
+					? 'Esta requisição primeiro observou PENDING e depois recebeu a resposta de SUCESSO armazenada.'
+					: 'Esta requisição primeiro observou PENDING e depois recebeu a resposta de FALHA armazenada.',
 			flowDescription:
 				outcome === 'SUCCESS'
-					? 'Request already in progress (PENDING) resolved to stored SUCCESS.'
-					: 'Request already in progress (PENDING) resolved to stored FAILURE.',
+					? 'A requisição já em andamento (PENDING) foi resolvida com SUCESSO persistido.'
+					: 'A requisição já em andamento (PENDING) foi resolvida com FALHA persistida.',
 			scenarioId: null,
 		}
 	}
@@ -792,18 +792,20 @@ function describeFinalResolution(
 		if (outcome === 'SUCCESS') {
 			return {
 				resultMode: 'REUSED',
-				headline: 'Returning persisted SUCCESS',
-				detail: 'This same-key replay returned immediately with the stored SUCCESS response.',
-				flowDescription: 'Returning persisted SUCCESS (no reprocessing).',
+				headline: 'Retornando SUCESSO persistido',
+				detail:
+					'Esta repetição com a mesma chave retornou imediatamente a resposta de SUCESSO armazenada.',
+				flowDescription: 'Retornando SUCESSO persistido (sem reprocessamento).',
 				scenarioId: 'RETRY_AFTER_SUCCESS',
 			}
 		}
 
 		return {
 			resultMode: 'REUSED',
-			headline: 'Returning persisted FAILURE',
-			detail: 'This same-key replay returned immediately with the stored FAILURE response.',
-			flowDescription: 'Returning persisted FAILURE (no retry executed).',
+			headline: 'Retornando FALHA persistida',
+			detail:
+				'Esta repetição com a mesma chave retornou imediatamente a resposta de FALHA armazenada.',
+			flowDescription: 'Retornando FALHA persistida (nenhuma nova tentativa executada).',
 			scenarioId: 'RETRY_AFTER_FAILURE',
 		}
 	}
@@ -811,11 +813,11 @@ function describeFinalResolution(
 	if (context.actionType === 'CONCURRENT') {
 		return {
 			resultMode: 'SHARED',
-			headline: 'Parallel request completed',
+			headline: 'Requisição paralela concluída',
 			detail:
-				'This response is part of the concurrency simulation. Compare both parallel requests to inspect the shared outcome.',
+				'Esta resposta faz parte da simulação de concorrência. Compare as duas requisições paralelas para inspecionar o resultado compartilhado.',
 			flowDescription:
-				'Parallel same-key requests completed. Compare the batch results to inspect the persisted outcome.',
+				'Requisições paralelas com a mesma chave foram concluídas. Compare os resultados do lote para inspecionar o resultado persistido.',
 			scenarioId: null,
 		}
 	}
@@ -823,22 +825,22 @@ function describeFinalResolution(
 	if (outcome === 'SUCCESS') {
 		return {
 			resultMode: 'FRESH',
-			headline: 'Fresh SUCCESS persisted',
+			headline: 'SUCESSO inicial persistido',
 			detail:
-				'The payment processed successfully and the terminal SUCCESS response is now stored for replay.',
+				'O pagamento foi processado com sucesso e a resposta final de SUCESSO agora está armazenada para repetição segura.',
 			flowDescription:
-				'The payment processed successfully and the response is now persisted for future same-key replays.',
+				'O pagamento foi processado com sucesso e a resposta agora está persistida para futuras repetições com a mesma chave.',
 			scenarioId: null,
 		}
 	}
 
 	return {
 		resultMode: 'FRESH',
-		headline: 'Fresh FAILURE persisted',
+		headline: 'FALHA inicial persistida',
 		detail:
-			'The processor failed once and the terminal FAILURE response is now stored for safe replay.',
+			'O processador falhou uma vez e a resposta final de FALHA agora está armazenada para repetição segura.',
 		flowDescription:
-			'The processor failed and the persisted FAILURE response will be reused on the next same-key replay.',
+			'O processador falhou e a resposta persistida de FALHA será reutilizada na próxima repetição com a mesma chave.',
 		scenarioId: null,
 	}
 }
@@ -885,8 +887,12 @@ async function sleep(ms: number) {
 
 function readErrorMessage(error: unknown) {
 	if (error instanceof Error) {
+		if (error.message === 'Failed to fetch') {
+			return 'Falha ao acessar a API.'
+		}
+
 		return error.message
 	}
 
-	return 'Unexpected error while contacting the backend.'
+	return 'Erro inesperado ao contatar a API.'
 }

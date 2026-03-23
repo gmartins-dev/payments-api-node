@@ -98,41 +98,43 @@ export const scenarioDefinitions: Record<
 	{ title: string; description: string; idleMessage: string }
 > = {
 	CONCURRENT_REQUESTS: {
-		title: 'Scenario 1 — Concurrent Requests',
+		title: 'Cenário 1 — Requisições concorrentes',
 		description:
-			'Send two same-key requests in parallel and verify they converge on one stored result.',
-		idleMessage: 'Run the concurrency simulation to compare two parallel requests side by side.',
+			'Envie duas requisições com a mesma chave em paralelo e verifique se ambas convergem para um único resultado persistido.',
+		idleMessage:
+			'Execute a simulação de concorrência para comparar duas requisições paralelas lado a lado.',
 	},
 	RETRY_AFTER_SUCCESS: {
-		title: 'Scenario 2 — Retry After Success',
+		title: 'Cenário 2 — Repetição após sucesso',
 		description:
-			'Replay a completed successful payment and confirm the backend reuses the saved response.',
+			'Reenvie um pagamento concluído com sucesso e confirme que a API reutiliza a resposta salva.',
 		idleMessage:
-			'Create a successful payment, then replay the same key to observe the persisted SUCCESS.',
+			'Crie um pagamento com sucesso e depois repita a mesma chave para observar o SUCESSO persistido.',
 	},
 	RETRY_AFTER_FAILURE: {
-		title: 'Scenario 3 — Retry After Failure',
+		title: 'Cenário 3 — Repetição após falha',
 		description:
-			'Replay a failed payment and confirm the backend does not execute a new processing attempt.',
-		idleMessage: 'When a payment fails, replay the same key to observe the persisted FAILURE.',
+			'Reenvie um pagamento com falha e confirme que a API não executa uma nova tentativa de processamento.',
+		idleMessage:
+			'Quando um pagamento falhar, repita a mesma chave para observar a FALHA persistida.',
 	},
 	REQUEST_DURING_PROCESSING: {
-		title: 'Scenario 4 — Request During Processing',
+		title: 'Cenário 4 — Requisição durante o processamento',
 		description:
-			'Issue a same-key request while the original request is still in flight and monitor the PENDING path.',
+			'Dispare uma requisição com a mesma chave enquanto a original ainda estiver em andamento e acompanhe o caminho PENDENTE.',
 		idleMessage:
-			'When the same key is requested while processing is active, the UI will surface the in-progress state.',
+			'Quando a mesma chave for usada enquanto o processamento estiver ativo, a interface mostrará o estado em andamento.',
 	},
 }
 
 export const initialFormState: PaymentFormState = {
 	amount: '100',
-	customerId: 'customer-1',
+	customerId: 'cliente-1',
 	idempotencyKey: createIdempotencyKey(),
 }
 
 export function createIdempotencyKey() {
-	return `payment-${crypto.randomUUID().slice(0, 8)}`
+	return `pagamento-${crypto.randomUUID().slice(0, 8)}`
 }
 
 export function createScenarioState(): Record<ScenarioId, ScenarioCardState> {
@@ -146,9 +148,9 @@ export function createScenarioState(): Record<ScenarioId, ScenarioCardState> {
 
 export function createIdleFlowState(): LiveFlowState {
 	return {
-		title: 'No request in progress',
+		title: 'Nenhuma requisição em andamento',
 		description:
-			'Create a payment or replay the same key to inspect idempotency and concurrency behavior.',
+			'Crie um pagamento ou repita a mesma chave para inspecionar o comportamento de idempotência e concorrência.',
 		stage: 'IDLE',
 		isLoading: false,
 		idempotencyKey: null,
@@ -254,10 +256,10 @@ export function formatJson(value: unknown) {
 
 export function formatTimestamp(value: string | null) {
 	if (!value) {
-		return 'Not available yet'
+		return 'Ainda não disponível'
 	}
 
-	return new Intl.DateTimeFormat('en-US', {
+	return new Intl.DateTimeFormat('pt-BR', {
 		dateStyle: 'medium',
 		timeStyle: 'medium',
 	}).format(new Date(value))
@@ -265,7 +267,7 @@ export function formatTimestamp(value: string | null) {
 
 export function formatDuration(value: number | null) {
 	if (value === null) {
-		return 'Pending'
+		return 'Pendente'
 	}
 
 	if (value < 1000) {
@@ -277,16 +279,16 @@ export function formatDuration(value: number | null) {
 
 export function validateForm(form: PaymentFormState) {
 	if (!form.idempotencyKey.trim()) {
-		return 'Idempotency key is required.'
+		return 'A chave de idempotência é obrigatória.'
 	}
 
 	if (!form.customerId.trim()) {
-		return 'Customer ID is required.'
+		return 'O ID do cliente é obrigatório.'
 	}
 
 	const amount = Number(form.amount)
 	if (!Number.isFinite(amount) || amount <= 0) {
-		return 'Amount must be a positive number.'
+		return 'O valor deve ser um número positivo.'
 	}
 
 	return null
