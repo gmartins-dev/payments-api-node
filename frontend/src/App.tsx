@@ -42,9 +42,9 @@ export function App() {
 	const lastUpdated = latestAttempt?.updatedAt ?? liveFlow.updatedAt
 
 	return (
-		<main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.15),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.15),_transparent_34%),var(--color-page)] px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
+		<main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_50%_-5%,_rgba(132,186,100,0.18),_transparent_28%),linear-gradient(180deg,_rgba(44,52,55,0.16),_transparent_38%),var(--color-page)] px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
 			<div className="mx-auto flex max-w-7xl flex-col gap-6">
-				<section className="reveal rounded-[36px] border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.88),rgba(15,23,42,0.64))] p-8 shadow-[0_30px_120px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+				<section className="reveal rounded-[36px] border border-[color:var(--color-border-soft)] bg-[linear-gradient(180deg,rgba(44,52,55,0.28),rgba(13,18,28,0.94))] p-8 shadow-[0_30px_120px_rgba(16,24,40,0.32)] backdrop-blur-xl">
 					<div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
 						<div className="max-w-3xl space-y-4">
 							<p className="text-xs font-semibold uppercase tracking-[0.38em] text-[var(--color-accent)]">
@@ -174,7 +174,7 @@ export function App() {
 							</div>
 
 							{errorMessage ? (
-								<div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+								<div className="rounded-2xl border border-[color:rgba(222,26,27,0.35)] bg-[color:rgba(222,26,27,0.14)] px-4 py-3 text-sm text-rose-200">
 									{errorMessage}
 								</div>
 							) : null}
@@ -222,7 +222,7 @@ export function App() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-6">
-							<div className="rounded-[24px] border border-white/10 bg-slate-950/55 p-5">
+							<div className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5">
 								<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 									<div className="space-y-2">
 										<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
@@ -265,7 +265,7 @@ export function App() {
 								</div>
 							</div>
 
-							<div className="rounded-[24px] border border-cyan-400/16 bg-cyan-500/8 p-5">
+							<div className="rounded-[24px] border border-cyan-400/16 bg-[color:rgba(65,126,56,0.12)] p-5">
 								<p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">
 									Último insight
 								</p>
@@ -311,7 +311,7 @@ export function App() {
 					</CardHeader>
 					<CardContent>
 						{groupedAttempts.length === 0 ? (
-							<div className="rounded-[24px] border border-dashed border-white/12 bg-slate-950/50 p-6 text-sm leading-6 text-slate-400">
+							<div className="rounded-[24px] border border-dashed border-[color:var(--color-border-soft)] bg-[color:rgba(13,18,28,0.64)] p-6 text-sm leading-6 text-slate-400">
 								Nenhuma requisição ainda. Crie um pagamento para ver a idempotência em ação.
 							</div>
 						) : (
@@ -386,7 +386,7 @@ function JsonPanel({
 	value: unknown
 }) {
 	return (
-		<div className="rounded-[24px] border border-white/10 bg-slate-950/55 p-5">
+		<div className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div>
 					<p className="text-xs uppercase tracking-[0.24em] text-slate-500">{caption}</p>
@@ -394,7 +394,7 @@ function JsonPanel({
 				</div>
 				{badges}
 			</div>
-			<div className="mt-4 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-200">
+			<div className="mt-4 overflow-x-auto rounded-2xl bg-[color:rgba(13,18,28,0.92)] p-4 text-xs leading-6 text-slate-200">
 				<pre>{formatJson(value)}</pre>
 			</div>
 		</div>
@@ -403,7 +403,7 @@ function JsonPanel({
 
 function Metric({ label, value }: { label: string; value: string }) {
 	return (
-		<div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+		<div className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] px-4 py-4">
 			<p className="text-xs uppercase tracking-[0.24em] text-slate-500">{label}</p>
 			<p className="mt-3 text-sm leading-6 text-white">{value}</p>
 		</div>
@@ -430,7 +430,7 @@ function LifecycleRail({
 
 				return (
 					<div
-						className="rounded-[22px] border border-white/10 bg-slate-950/80 p-4 transition-all duration-300"
+						className="rounded-[22px] border border-[color:var(--color-border-soft)] bg-[color:rgba(13,18,28,0.84)] p-4 transition-all duration-300"
 						key={step.key}
 					>
 						<div className="flex items-center gap-3">
@@ -443,7 +443,7 @@ function LifecycleRail({
 											: 'border-cyan-300/30 bg-cyan-500/20 text-cyan-50'
 										: isComplete
 											? 'border-emerald-400/20 bg-emerald-500/15 text-emerald-100'
-											: 'border-white/10 bg-white/6 text-slate-500',
+											: 'border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] text-slate-500',
 								].join(' ')}
 							>
 								{index + 1}
@@ -464,7 +464,7 @@ function LifecycleRail({
 
 function MonitorMeta({ label, value }: { label: string; value: string }) {
 	return (
-		<div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+		<div className="rounded-2xl border border-[color:var(--color-border-faint)] bg-[color:var(--color-surface-muted)] px-3 py-3">
 			<p className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</p>
 			<p className="mt-2 break-all text-sm text-slate-100">{value}</p>
 		</div>
@@ -483,7 +483,7 @@ function ScenarioCard({
 	}
 }) {
 	return (
-		<article className="rounded-[24px] border border-white/10 bg-slate-950/55 p-5 transition-all duration-300">
+		<article className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5 transition-all duration-300">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div className="space-y-2">
 					<h3 className="font-display text-xl text-slate-50">{scenario.title}</h3>
@@ -503,8 +503,8 @@ function ScenarioCard({
 
 function AttemptGroupCard({ group }: { group: AttemptGroup }) {
 	return (
-		<article className="rounded-[28px] border border-white/10 bg-slate-950/55 p-5 shadow-[0_18px_40px_rgba(2,6,23,0.3)] history-enter">
-			<div className="flex flex-col gap-4 border-b border-white/8 pb-4 lg:flex-row lg:items-start lg:justify-between">
+		<article className="rounded-[28px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5 shadow-[0_18px_40px_rgba(16,24,40,0.24)] history-enter">
+			<div className="flex flex-col gap-4 border-b border-[color:var(--color-border-faint)] pb-4 lg:flex-row lg:items-start lg:justify-between">
 				<div className="space-y-2">
 					<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
 						Chave de idempotência
@@ -533,7 +533,7 @@ function AttemptGroupCard({ group }: { group: AttemptGroup }) {
 
 function AttemptRow({ attempt, defaultOpen }: { attempt: AttemptRecord; defaultOpen: boolean }) {
 	return (
-		<section className="rounded-[24px] border border-white/10 bg-slate-950/70 p-4 transition-all duration-300">
+		<section className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:rgba(13,18,28,0.78)] p-4 transition-all duration-300">
 			<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 				<div className="space-y-3">
 					<div className="flex flex-wrap gap-2">
@@ -572,7 +572,7 @@ function AttemptRow({ attempt, defaultOpen }: { attempt: AttemptRecord; defaultO
 			</div>
 
 			<details
-				className="mt-4 rounded-[22px] border border-white/8 bg-slate-950/70 p-4"
+				className="mt-4 rounded-[22px] border border-[color:var(--color-border-faint)] bg-[color:rgba(13,18,28,0.78)] p-4"
 				open={defaultOpen}
 			>
 				<summary className="cursor-pointer list-none text-sm font-medium text-slate-100 [&::-webkit-details-marker]:hidden">
@@ -583,13 +583,13 @@ function AttemptRow({ attempt, defaultOpen }: { attempt: AttemptRecord; defaultO
 						<p className="text-xs uppercase tracking-[0.22em] text-slate-500">
 							Payload da requisição
 						</p>
-						<div className="mt-2 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-200">
+						<div className="mt-2 overflow-x-auto rounded-2xl bg-[color:rgba(13,18,28,0.92)] p-4 text-xs leading-6 text-slate-200">
 							<pre>{formatJson(attempt.requestPayload)}</pre>
 						</div>
 					</div>
 					<div>
 						<p className="text-xs uppercase tracking-[0.22em] text-slate-500">Corpo da resposta</p>
-						<div className="mt-2 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-200">
+						<div className="mt-2 overflow-x-auto rounded-2xl bg-[color:rgba(13,18,28,0.92)] p-4 text-xs leading-6 text-slate-200">
 							<pre>{formatJson(attempt.body ?? { status: 'PENDENTE' })}</pre>
 						</div>
 					</div>
@@ -601,7 +601,7 @@ function AttemptRow({ attempt, defaultOpen }: { attempt: AttemptRecord; defaultO
 
 function HistoryMeta({ label, value }: { label: string; value: string }) {
 	return (
-		<div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+		<div className="rounded-2xl border border-[color:var(--color-border-faint)] bg-[color:var(--color-surface-muted)] px-3 py-3">
 			<p className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</p>
 			<p className="mt-2 break-all text-sm text-slate-100">{value}</p>
 		</div>

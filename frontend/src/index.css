@@ -1,10 +1,93 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Open+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+@theme {
+	--font-sans: "Open Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+	--font-mono:
+		"IBM Plex Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+		monospace;
+
+	--color-slate-50: #ffffff;
+	--color-slate-100: #f6f7f9;
+	--color-slate-200: #e9edf0;
+	--color-slate-300: #d9e1e4;
+	--color-slate-400: #cbd4d9;
+	--color-slate-500: #b1bcc2;
+	--color-slate-600: #929fa5;
+	--color-slate-700: #6e7b83;
+	--color-slate-800: #556066;
+	--color-slate-900: #2c3437;
+	--color-slate-950: #0d121c;
+
+	--color-cyan-50: #edf2eb;
+	--color-cyan-100: #edf2eb;
+	--color-cyan-200: #c5e5b4;
+	--color-cyan-300: #99cc7d;
+	--color-cyan-400: #84ba64;
+	--color-cyan-500: #5fa04e;
+	--color-cyan-600: #417e38;
+	--color-cyan-700: #2c682c;
+	--color-cyan-800: #2c682c;
+	--color-cyan-900: #1a3f1d;
+
+	--color-emerald-50: #edf2eb;
+	--color-emerald-100: #edf2eb;
+	--color-emerald-200: #c5e5b4;
+	--color-emerald-300: #99cc7d;
+	--color-emerald-400: #84ba64;
+	--color-emerald-500: #5fa04e;
+	--color-emerald-600: #417e38;
+	--color-emerald-700: #2c682c;
+	--color-emerald-800: #2c682c;
+	--color-emerald-900: #1a3f1d;
+
+	--color-amber-50: #fdf3e7;
+	--color-amber-100: #fdf3e7;
+	--color-amber-200: #fad9b0;
+	--color-amber-300: #f5bc75;
+	--color-amber-400: #e99c40;
+	--color-amber-500: #d07912;
+	--color-amber-600: #ae5f00;
+	--color-amber-700: #8b4d04;
+	--color-amber-800: #683d08;
+	--color-amber-900: #4d2f0b;
+
+	--color-rose-50: #fbf1f0;
+	--color-rose-100: #fbf1f0;
+	--color-rose-200: #fad3d4;
+	--color-rose-300: #fab6b7;
+	--color-rose-400: #fa8e8e;
+	--color-rose-500: #f65354;
+	--color-rose-600: #de1a1b;
+	--color-rose-700: #b80c0c;
+	--color-rose-800: #900e0e;
+	--color-rose-900: #661514;
+}
+
 :root {
-	--color-page: #020617;
-	--color-accent: #67e8f9;
-	--color-accent-soft: rgba(103, 232, 249, 0.22);
-	--color-accent-strong: #f59e0b;
+	--color-page: #0d121c;
+	--color-surface: rgba(44, 52, 55, 0.36);
+	--color-surface-muted: rgba(44, 52, 55, 0.22);
+	--color-surface-strong: rgba(13, 18, 28, 0.92);
+	--color-panel: rgba(13, 18, 28, 0.72);
+	--color-border: rgba(44, 52, 55, 0.92);
+	--color-border-soft: rgba(85, 96, 102, 0.42);
+	--color-border-faint: rgba(85, 96, 102, 0.24);
+	--color-accent: #84ba64;
+	--color-accent-soft: rgba(132, 186, 100, 0.18);
+	--color-accent-strong: #417e38;
+	--color-info: #0c7bb3;
+	--color-info-soft: rgba(12, 123, 179, 0.18);
+	--color-warning: #ae5f00;
+	--color-warning-soft: rgba(174, 95, 0, 0.18);
+	--color-danger: #de1a1b;
+	--color-danger-soft: rgba(222, 26, 27, 0.18);
+	--color-shadow: #101828;
+	--color-text-primary: #ffffff;
+	--color-text-secondary: #e9edf0;
+	--color-text-muted: #b1bcc2;
+	--color-text-soft: #929fa5;
+	--color-text-faint: #6e7b83;
 }
 
 html {
@@ -14,8 +97,11 @@ html {
 body {
 	margin: 0;
 	min-width: 320px;
-	font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-	background: var(--color-page);
+	font-family: var(--font-sans);
+	background:
+		radial-gradient(circle at 50% -5%, rgba(132, 186, 100, 0.16), transparent 28%),
+		linear-gradient(180deg, rgba(44, 52, 55, 0.12) 0%, rgba(13, 18, 28, 0) 38%), var(--color-page);
+	color: var(--color-text-primary);
 }
 
 * {
@@ -24,12 +110,19 @@ body {
 
 pre {
 	margin: 0;
+	font-family: var(--font-mono);
 	white-space: pre-wrap;
 	word-break: break-word;
 }
 
+.font-mono,
+code {
+	font-family: var(--font-mono);
+}
+
 .font-display {
-	font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+	font-family: var(--font-sans);
+	letter-spacing: -0.025em;
 }
 
 .reveal {
@@ -71,5 +164,5 @@ pre {
 
 ::-webkit-scrollbar-thumb {
 	border-radius: 999px;
-	background: rgba(148, 163, 184, 0.3);
+	background: rgba(85, 96, 102, 0.72);
 }
