@@ -1,3 +1,4 @@
+import { env } from '../../config/env.js'
 import { AppError } from '../../shared/http-errors.js'
 import { sleep } from '../../shared/sleep.js'
 import type {
@@ -8,7 +9,7 @@ import type {
 
 const DEFAULT_MIN_DELAY_MS = 1500
 const DEFAULT_MAX_DELAY_MS = 4000
-const DEFAULT_FAILURE_RATE = 0.3
+const DEFAULT_FAILURE_RATE = env.PAYMENTS_FAILURE_RATE
 
 export class PaymentProcessorTemporaryError extends AppError {
 	constructor(paymentId: string) {
