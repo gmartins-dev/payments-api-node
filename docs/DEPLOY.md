@@ -17,6 +17,7 @@ O caminho abaixo é o mais direto e compatível com a estrutura atual do reposit
 - Swagger: `https://seu-backend.onrender.com/docs`
 - health check: `https://seu-backend.onrender.com/health`
 - banco: Render Postgres ou Neon
+- Postman Collection: [docs/postman_collection.json](/home/gmartinsdev/dev/repos/payments-api-node/docs/postman_collection.json)
 
 ## Pré-requisitos
 
@@ -250,6 +251,12 @@ curl -i -X POST https://seu-backend.onrender.com/payments \
 ```
 
 Repita exatamente a mesma chamada com a mesma chave para validar o replay persistido.
+
+Se preferir validar com Postman:
+
+1. importe [docs/postman_collection.json](/home/gmartinsdev/dev/repos/payments-api-node/docs/postman_collection.json)
+2. ajuste a variável `baseUrl` para a URL pública do backend
+3. execute `Health Check`, `Create Payment` e `Replay Same Request`
 
 ## Checklist final
 

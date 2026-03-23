@@ -16,6 +16,7 @@ Stack principal:
 O objetivo central é garantir que múltiplas tentativas com a mesma `Idempotency-Key` retornem exatamente a mesma resposta persistida, sem processamento duplicado.
 
 Para uma visão executiva ainda mais curta, consulte [docs/SUMMARY.md](docs/SUMMARY.md).
+Para testar a API via Postman, importe [docs/postman_collection.json](docs/postman_collection.json).
 
 ## Como rodar localmente
 
@@ -55,6 +56,7 @@ Endereços locais:
 - frontend: `http://localhost:5173`
 - backend: `http://localhost:3000`
 - Swagger UI: `http://localhost:3000/docs`
+- Postman Collection: `docs/postman_collection.json`
 
 Health check:
 
@@ -190,6 +192,7 @@ Configuração mínima:
 Documentação da API:
 
 - `GET /docs`
+- Postman Collection: `docs/postman_collection.json`
 
 ## Trade-offs
 
