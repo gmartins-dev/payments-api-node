@@ -5,11 +5,13 @@ import { Button } from './components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
 import { Input } from './components/ui/input'
 import {
+	type AttemptActionType,
 	type AttemptGroup,
 	type AttemptRecord,
 	formatDuration,
 	formatJson,
 	formatTimestamp,
+	type LiveFlowState,
 } from './features/payment-demo/model'
 import { usePaymentDemo } from './features/payment-demo/usePaymentDemo'
 
@@ -33,6 +35,7 @@ export function App() {
 		setFormField,
 	} = usePaymentDemo(apiUrl)
 
+	const requestCount = groupedAttempts.reduce((sum, group) => sum + group.totalRequests, 0)
 	const latestOutcome = liveFlow.isLoading
 		? liveFlow.stage === 'IDLE'
 			? 'REQUEST_CREATED'
@@ -40,61 +43,84 @@ export function App() {
 		: (latestAttempt?.outcome ?? 'IDLE')
 	const latestResponseTime = latestAttempt?.elapsedMs ?? null
 	const lastUpdated = latestAttempt?.updatedAt ?? liveFlow.updatedAt
+	const heroUpdatedAt = lastUpdated ? formatMetricTimestamp(lastUpdated) : 'Ainda sem eventos'
 
 	return (
 		<main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_50%_-5%,_rgba(132,186,100,0.18),_transparent_28%),linear-gradient(180deg,_rgba(44,52,55,0.16),_transparent_38%),var(--color-page)] px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
-			<div className="mx-auto flex max-w-7xl flex-col gap-6">
-				<section className="reveal rounded-[36px] border border-[color:var(--color-border-soft)] bg-[linear-gradient(180deg,rgba(44,52,55,0.28),rgba(13,18,28,0.94))] p-8 shadow-[0_30px_120px_rgba(16,24,40,0.32)] backdrop-blur-xl">
-					<div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-						<div className="max-w-3xl space-y-4">
-							<p className="text-xs font-semibold uppercase tracking-[0.38em] text-[var(--color-accent)]">
-								Demo de Idempotência em Pagamentos
-							</p>
-							<h1 className="font-display text-4xl leading-tight text-white sm:text-5xl">
-								Uma chave, um resultado persistido, nenhum processamento duplicado.
-							</h1>
-							<p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-								Acompanhe o ciclo completo da requisição, repita a mesma chave de idempotência e
-								compare requisições paralelas sem sair da interface.
-							</p>
+			<div className="mx-auto flex max-w-6xl flex-col gap-6">
+				<section className="reveal rounded-[36px] border border-[color:var(--color-border-soft)] bg-[linear-gradient(180deg,rgba(44,52,55,0.28),rgba(13,18,28,0.94))] p-6 shadow-[0_30px_120px_rgba(16,24,40,0.32)] backdrop-blur-xl sm:p-8">
+					<div className="flex flex-col gap-8">
+						<div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+							<div className="max-w-3xl space-y-4">
+								<p className="text-xs font-semibold uppercase tracking-[0.38em] text-[var(--color-accent)]">
+									Demo de Idempotência em Pagamentos
+								</p>
+								<h1 className="font-display text-4xl leading-tight text-white sm:text-5xl">
+									Uma chave, um resultado persistido. Sem processamento duplicado.
+								</h1>
+								<p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+									Esta interface mostra quando a API processa de verdade, quando apenas devolve uma
+									resposta já salva e como duas chamadas paralelas convergem para o mesmo desfecho.
+								</p>
+							</div>
+
+							<div className="flex w-full max-w-3xl flex-col gap-4">
+								<div className="flex flex-wrap items-center justify-between gap-3">
+									<div className="rounded-full border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] px-4 py-2 text-xs uppercase tracking-[0.24em] text-slate-400">
+										Observe o comportamento da API sem precisar abrir o backend.
+									</div>
+									<Button asChild size="sm" variant="outline">
+										<a href={apiDocsUrl} rel="noreferrer" target="_blank">
+											Swagger
+										</a>
+									</Button>
+								</div>
+
+								<div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
+									<Metric label="API alvo" value={apiUrl.replace(/^https?:\/\//, '')} />
+									<Metric label="Último resultado" value={formatStageLabel(latestOutcome)} />
+									<Metric label="Tempo da resposta" value={formatDuration(latestResponseTime)} />
+									<Metric label="Atualizado" value={heroUpdatedAt} />
+								</div>
+							</div>
 						</div>
 
-						<div className="flex w-full flex-col gap-4 xl:max-w-3xl xl:items-end">
-							<Button asChild className="self-start xl:self-auto" size="sm" variant="outline">
-								<a href={apiDocsUrl} rel="noreferrer" target="_blank">
-									Docs da API
-								</a>
-							</Button>
-
-							<div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-5">
-								<Metric label="Alvo da API" value={apiUrl.replace(/^https?:\/\//, '')} />
-								<Metric label="Último resultado" value={formatStageLabel(latestOutcome)} />
-								<Metric label="Tempo de resposta" value={formatDuration(latestResponseTime)} />
-								<Metric
-									label="Requisições"
-									value={String(
-										groupedAttempts.reduce((sum, group) => sum + group.totalRequests, 0),
-									)}
-								/>
-								<Metric
-									label="Última atualização"
-									value={lastUpdated ? formatTimestamp(lastUpdated) : 'Ainda sem requisições'}
-								/>
-							</div>
+						<div className="grid gap-3 lg:grid-cols-3">
+							<GuideCard
+								description="A primeira chamada executa o processamento e salva a resposta final."
+								step="1"
+								title="Crie um pagamento"
+							/>
+							<GuideCard
+								description="Repita a mesma chave para provar que o retorno é reutilizado, não recalculado."
+								step="2"
+								title="Repita a mesma requisição"
+							/>
+							<GuideCard
+								description="Dispare duas chamadas em paralelo para ver um único resultado compartilhado."
+								step="3"
+								title="Compare concorrência"
+							/>
 						</div>
 					</div>
 				</section>
 
-				<section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-					<Card className="reveal">
-						<CardHeader>
-							<CardTitle>Laboratório de pagamentos</CardTitle>
-							<CardDescription>
-								Use a mesma chave de idempotência para provar a resposta persistida ou envie duas
-								requisições em paralelo para inspecionar a segurança de concorrência.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-6">
+				<Card className="reveal">
+					<CardHeader className="gap-3">
+						<CardTitle>Teste agora</CardTitle>
+						<CardDescription>
+							Monte a requisição, escolha o experimento e veja uma explicação humana do retorno
+							antes do JSON técnico.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-8">
+						<section className="space-y-4">
+							<SectionLead
+								description="Preencha os dados básicos e defina a chave que identifica a requisição."
+								step="1"
+								title="Configure a requisição"
+							/>
+
 							<div className="grid gap-4 md:grid-cols-3">
 								<Field htmlFor="payment-amount" label="Valor">
 									<Input
@@ -114,7 +140,7 @@ export function App() {
 									/>
 								</Field>
 								<Field
-									description="Mesma chave = mesmo resultado (idempotente)"
+									description="Mesma chave = mesmo resultado persistido"
 									htmlFor="payment-idempotency-key"
 									label="Chave de idempotência"
 								>
@@ -133,44 +159,57 @@ export function App() {
 											size="sm"
 											variant="outline"
 										>
-											Nova chave
+											Gerar nova chave
 										</Button>
 									</div>
 								</Field>
 							</div>
 
-							<div className="flex flex-col gap-3 md:flex-row">
-								<Button className="md:flex-1" disabled={isBusy} onClick={handleCreatePayment}>
-									<ButtonLabel
-										isLoading={isBusy && liveFlow.actionType === 'CREATE'}
-										label="Criar pagamento"
-										loadingLabel="Processando..."
-									/>
-								</Button>
-								<Button
-									className="md:flex-1"
-									disabled={isBusy}
+							<RequestSnapshot
+								amount={form.amount}
+								customerId={form.customerId}
+								idempotencyKey={form.idempotencyKey}
+							/>
+						</section>
+
+						<section className="space-y-4">
+							<SectionLead
+								description="Cada ação prova um comportamento diferente da API."
+								step="2"
+								title="Escolha o que quer validar"
+							/>
+
+							<div className="grid gap-3 xl:grid-cols-3">
+								<ActionCard
+									buttonLabel="Criar pagamento"
+									description="Faz a primeira chamada e grava o resultado final dessa chave."
+									isBusy={isBusy}
+									isLoading={isBusy && liveFlow.actionType === 'CREATE'}
+									loadingLabel="Processando..."
+									onClick={handleCreatePayment}
+									title="Fluxo normal"
+									variant="default"
+								/>
+								<ActionCard
+									buttonLabel="Repetir a mesma requisição"
+									description="Usa a mesma chave para provar que a resposta persistida é reutilizada."
+									isBusy={isBusy}
+									isLoading={isBusy && liveFlow.actionType === 'REPLAY'}
+									loadingLabel="Repetindo..."
 									onClick={handleReplaySameRequest}
+									title="Idempotência"
 									variant="outline"
-								>
-									<ButtonLabel
-										isLoading={isBusy && liveFlow.actionType === 'REPLAY'}
-										label="Repetir mesma requisição (mesma chave)"
-										loadingLabel="Repetindo..."
-									/>
-								</Button>
-								<Button
-									className="md:flex-1"
-									disabled={isBusy}
+								/>
+								<ActionCard
+									buttonLabel="Simular duas chamadas paralelas"
+									description="Dispara duas requisições simultâneas com a mesma chave para comparar o desfecho."
+									isBusy={isBusy}
+									isLoading={isBusy && liveFlow.actionType === 'CONCURRENT'}
+									loadingLabel="Executando fluxo paralelo..."
 									onClick={handleConcurrentRequests}
+									title="Concorrência"
 									variant="secondary"
-								>
-									<ButtonLabel
-										isLoading={isBusy && liveFlow.actionType === 'CONCURRENT'}
-										label="Simular concorrência (2 requisições paralelas)"
-										loadingLabel="Executando fluxo paralelo..."
-									/>
-								</Button>
+								/>
 							</div>
 
 							{errorMessage ? (
@@ -178,141 +217,109 @@ export function App() {
 									{errorMessage}
 								</div>
 							) : null}
+						</section>
 
-							<div className="grid gap-4 lg:grid-cols-2">
-								<JsonPanel
-									caption="Payload atual da requisição"
-									title="Payload da requisição"
-									value={{
-										amount: requestPayload.amount,
-										customerId: requestPayload.customerId,
-										idempotencyKey: form.idempotencyKey,
-									}}
-								/>
-								<JsonPanel
-									badges={
-										latestAttempt ? (
-											<div className="flex flex-wrap gap-2">
-												<OutcomeBadge outcome={latestAttempt.outcome} />
-												<ResultModeBadge attempt={latestAttempt} />
-												{latestAttempt.httpStatus !== null ? (
-													<Badge variant="neutral">HTTP {latestAttempt.httpStatus}</Badge>
-												) : null}
-											</div>
-										) : null
-									}
-									caption={
-										latestAttempt
-											? `${latestAttempt.headline}${latestAttempt.requestId ? ` • ${latestAttempt.requestId}` : ''}`
-											: 'Sem resposta ainda'
-									}
-									title="Corpo da última resposta"
-									value={latestAttempt?.body ?? { status: 'AGUARDANDO' }}
-								/>
-							</div>
+						<section className="space-y-4">
+							<SectionLead
+								description="Veja primeiro o que aconteceu em linguagem direta. O JSON fica logo abaixo, se você quiser validar o detalhe técnico."
+								step="3"
+								title="Entenda o retorno"
+							/>
+
+							<ResultSummaryCard latestAttempt={latestAttempt} liveFlow={liveFlow} />
+
+							<details className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] p-5">
+								<summary className="cursor-pointer list-none text-sm font-medium text-slate-100 [&::-webkit-details-marker]:hidden">
+									Abrir payload e JSON técnico
+								</summary>
+								<div className="mt-4 grid gap-4 lg:grid-cols-2">
+									<JsonPanel
+										caption="O que será enviado nesta chave"
+										title="Payload atual"
+										value={{
+											amount: requestPayload.amount,
+											customerId: requestPayload.customerId,
+											idempotencyKey: form.idempotencyKey,
+										}}
+									/>
+									<JsonPanel
+										badges={
+											latestAttempt ? (
+												<div className="flex flex-wrap gap-2">
+													<OutcomeBadge outcome={latestAttempt.outcome} />
+													<ResultModeBadge attempt={latestAttempt} />
+													{latestAttempt.httpStatus !== null ? (
+														<Badge variant="neutral">HTTP {latestAttempt.httpStatus}</Badge>
+													) : null}
+												</div>
+											) : null
+										}
+										caption={
+											latestAttempt
+												? `${latestAttempt.headline}${latestAttempt.requestId ? ` • ${latestAttempt.requestId}` : ''}`
+												: 'Sem resposta ainda'
+										}
+										title="Corpo da última resposta"
+										value={latestAttempt?.body ?? { status: 'AGUARDANDO' }}
+									/>
+								</div>
+							</details>
+						</section>
+					</CardContent>
+				</Card>
+
+				<section className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+					<Card className="reveal">
+						<CardHeader className="gap-3">
+							<CardTitle>Acompanhe ao vivo</CardTitle>
+							<CardDescription>
+								Este painel mostra o estado atual da chave, a etapa do ciclo de vida e a leitura do
+								que a API acabou de fazer.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-5">
+							<CurrentStatusCard
+								latestAttempt={latestAttempt}
+								liveFlow={liveFlow}
+								requestCount={requestCount}
+							/>
 						</CardContent>
 					</Card>
 
 					<Card className="reveal">
-						<CardHeader>
-							<CardTitle>Monitor de comportamento</CardTitle>
+						<CardHeader className="gap-3">
+							<CardTitle>Cenários guiados</CardTitle>
 							<CardDescription>
-								A interface acompanha as transições do ciclo de vida, as respostas persistidas e os
-								quatro cenários-chave de idempotência conforme eles acontecem.
+								Cada cartão traduz o que você está tentando provar e qual mensagem a interface exibe
+								quando esse caso acontece.
 							</CardDescription>
 						</CardHeader>
-						<CardContent className="space-y-6">
-							<div className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5">
-								<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-									<div className="space-y-2">
-										<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-											Ciclo de vida da requisição
-										</p>
-										<h3 className="font-display text-2xl text-slate-50">{liveFlow.title}</h3>
-										<p className="max-w-xl text-sm leading-6 text-slate-300">
-											{liveFlow.description}
-										</p>
-									</div>
-									<div className="flex flex-wrap gap-2">
-										<StageBadge stage={liveFlow.stage} />
-										{liveFlow.actionType ? (
-											<Badge variant="neutral">{formatActionTypeLabel(liveFlow.actionType)}</Badge>
-										) : null}
-									</div>
-								</div>
-
-								<div className="mt-5">
-									<LifecycleRail stage={liveFlow.stage} />
-								</div>
-
-								<div className="mt-5 grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
-									<MonitorMeta
-										label="Chave de idempotência"
-										value={liveFlow.idempotencyKey ?? 'Aguardando a próxima requisição'}
-									/>
-									<MonitorMeta
-										label="Requisições concluídas"
-										value={
-											liveFlow.totalRequests > 0
-												? `${liveFlow.completedRequests}/${liveFlow.totalRequests}`
-												: '0/0'
-										}
-									/>
-									<MonitorMeta
-										label="Atualizado"
-										value={liveFlow.updatedAt ? formatTimestamp(liveFlow.updatedAt) : 'Inativo'}
-									/>
-								</div>
-							</div>
-
-							<div className="rounded-[24px] border border-cyan-400/16 bg-[color:rgba(65,126,56,0.12)] p-5">
-								<p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">
-									Último insight
-								</p>
-								{latestAttempt ? (
-									<div className="mt-3 space-y-3">
-										<div className="flex flex-wrap gap-2">
-											<OutcomeBadge outcome={latestAttempt.outcome} />
-											<ResultModeBadge attempt={latestAttempt} />
-											<ActionBadge actionType={latestAttempt.actionType} />
-										</div>
-										<div>
-											<h3 className="font-display text-xl text-white">{latestAttempt.headline}</h3>
-											<p className="mt-2 text-sm leading-6 text-cyan-50/90">
-												{latestAttempt.detail}
-											</p>
-										</div>
-									</div>
-								) : (
-									<p className="mt-3 text-sm leading-6 text-cyan-50/90">
-										Crie um pagamento para ver o ciclo de vida da requisição, os indicadores de
-										resposta persistida e os insights de concorrência aparecerem.
-									</p>
-								)}
-							</div>
-
-							<div className="grid gap-4 md:grid-cols-2">
-								{scenarios.map((scenario) => (
-									<ScenarioCard key={scenario.id} scenario={scenario} />
-								))}
-							</div>
+						<CardContent className="grid gap-3 sm:grid-cols-2">
+							{scenarios.map((scenario) => (
+								<ScenarioCard key={scenario.id} scenario={scenario} />
+							))}
 						</CardContent>
 					</Card>
 				</section>
 
 				<Card className="reveal">
-					<CardHeader>
-						<CardTitle>Histórico de tentativas</CardTitle>
+					<CardHeader className="gap-3">
+						<CardTitle>Histórico técnico</CardTitle>
 						<CardDescription>
-							Agrupe as requisições por chave de idempotência e inspecione se cada resposta foi
-							processada do zero, reproduzida a partir do armazenamento ou compartilhada por
-							requisições concorrentes.
+							Use esta área quando quiser auditar cada tentativa, conferir duração, request id e o
+							JSON completo de cada resposta.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						{groupedAttempts.length === 0 ? (
-							<div className="rounded-[24px] border border-dashed border-[color:var(--color-border-soft)] bg-[color:rgba(13,18,28,0.64)] p-6 text-sm leading-6 text-slate-400">
-								Nenhuma requisição ainda. Crie um pagamento para ver a idempotência em ação.
+							<div className="rounded-[24px] border border-dashed border-[color:var(--color-border-soft)] bg-[color:rgba(13,18,28,0.64)] p-6">
+								<p className="text-base font-medium text-slate-100">
+									Nenhum teste executado ainda.
+								</p>
+								<p className="mt-2 text-sm leading-6 text-slate-400">
+									Assim que você criar um pagamento, repetir a mesma chave ou simular concorrência,
+									o histórico vai reunir tudo aqui por chave de idempotência.
+								</p>
 							</div>
 						) : (
 							<div className="space-y-4">
@@ -325,6 +332,50 @@ export function App() {
 				</Card>
 			</div>
 		</main>
+	)
+}
+
+function GuideCard({
+	description,
+	step,
+	title,
+}: {
+	description: string
+	step: string
+	title: string
+}) {
+	return (
+		<article className="rounded-[26px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] p-5">
+			<div className="flex items-start gap-4">
+				<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:rgba(132,186,100,0.32)] bg-[color:rgba(65,126,56,0.18)] text-sm font-semibold text-slate-50">
+					{step}
+				</div>
+				<div>
+					<h2 className="font-display text-xl text-white">{title}</h2>
+					<p className="mt-2 text-sm leading-6 text-slate-300">{description}</p>
+				</div>
+			</div>
+		</article>
+	)
+}
+
+function SectionLead({
+	description,
+	step,
+	title,
+}: {
+	description: string
+	step: string
+	title: string
+}) {
+	return (
+		<div className="space-y-2">
+			<p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
+				Passo {step}
+			</p>
+			<h2 className="font-display text-2xl text-white">{title}</h2>
+			<p className="max-w-3xl text-sm leading-6 text-slate-400">{description}</p>
+		</div>
 	)
 }
 
@@ -353,6 +404,78 @@ function Field({
 	)
 }
 
+function RequestSnapshot({
+	amount,
+	customerId,
+	idempotencyKey,
+}: {
+	amount: string
+	customerId: string
+	idempotencyKey: string
+}) {
+	return (
+		<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[160px_180px_minmax(0,1fr)]">
+			<SnapshotItem label="Valor" value={formatAmountPreview(amount)} />
+			<SnapshotItem label="Cliente" value={customerId || 'Não informado'} />
+			<SnapshotItem code label="Chave atual" value={idempotencyKey || 'Não informada'} />
+		</div>
+	)
+}
+
+function SnapshotItem({
+	code = false,
+	label,
+	value,
+}: {
+	code?: boolean
+	label: string
+	value: string
+}) {
+	return (
+		<div className="rounded-[22px] border border-[color:var(--color-border-faint)] bg-[color:var(--color-surface-muted)] px-4 py-4">
+			<p className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</p>
+			<p
+				className={[
+					'mt-3 break-all text-sm text-slate-100',
+					code ? 'font-mono leading-6' : 'leading-6',
+				].join(' ')}
+			>
+				{value}
+			</p>
+		</div>
+	)
+}
+
+function ActionCard({
+	buttonLabel,
+	description,
+	isBusy,
+	isLoading,
+	loadingLabel,
+	onClick,
+	title,
+	variant,
+}: {
+	buttonLabel: string
+	description: string
+	isBusy: boolean
+	isLoading: boolean
+	loadingLabel: string
+	onClick: () => void
+	title: string
+	variant: 'default' | 'outline' | 'secondary'
+}) {
+	return (
+		<article className="rounded-[26px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] p-5">
+			<p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{title}</p>
+			<p className="mt-3 text-sm leading-6 text-slate-300">{description}</p>
+			<Button className="mt-5 w-full" disabled={isBusy} onClick={onClick} variant={variant}>
+				<ButtonLabel isLoading={isLoading} label={buttonLabel} loadingLabel={loadingLabel} />
+			</Button>
+		</article>
+	)
+}
+
 function ButtonLabel({
 	isLoading,
 	label,
@@ -371,6 +494,163 @@ function ButtonLabel({
 			<Spinner />
 			{loadingLabel}
 		</span>
+	)
+}
+
+function ResultSummaryCard({
+	latestAttempt,
+	liveFlow,
+}: {
+	latestAttempt: AttemptRecord | undefined
+	liveFlow: LiveFlowState
+}) {
+	if (liveFlow.isLoading) {
+		return (
+			<div className="rounded-[26px] border border-[color:rgba(65,126,56,0.3)] bg-[color:rgba(65,126,56,0.12)] p-5">
+				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+					<div className="space-y-2">
+						<p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+							Processamento em andamento
+						</p>
+						<h3 className="font-display text-2xl text-white">{liveFlow.title}</h3>
+						<p className="max-w-2xl text-sm leading-6 text-slate-300">{liveFlow.description}</p>
+					</div>
+					<div className="flex flex-wrap gap-2">
+						<StageBadge stage={liveFlow.stage} />
+						{liveFlow.actionType ? <ActionBadge actionType={liveFlow.actionType} /> : null}
+					</div>
+				</div>
+
+				<div className="mt-4 grid gap-3 sm:grid-cols-3">
+					<MonitorMeta
+						label="Chave em uso"
+						value={liveFlow.idempotencyKey ?? 'Aguardando a próxima requisição'}
+					/>
+					<MonitorMeta
+						label="Progresso"
+						value={`${liveFlow.completedRequests}/${liveFlow.totalRequests || 0} concluídas`}
+					/>
+					<MonitorMeta
+						label="Atualizado"
+						value={liveFlow.updatedAt ? formatTimestamp(liveFlow.updatedAt) : 'Agora mesmo'}
+					/>
+				</div>
+			</div>
+		)
+	}
+
+	if (!latestAttempt) {
+		return (
+			<div className="rounded-[26px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] p-5">
+				<p className="text-xs uppercase tracking-[0.24em] text-slate-500">Resultado simplificado</p>
+				<h3 className="mt-3 font-display text-2xl text-white">Ainda não houve resposta.</h3>
+				<p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+					Escolha um teste acima. Assim que a API responder, este bloco vai explicar o que aconteceu
+					e o que vale testar em seguida.
+				</p>
+			</div>
+		)
+	}
+
+	return (
+		<div className="rounded-[26px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5">
+			<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+				<div className="space-y-2">
+					<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+						Resumo da última resposta
+					</p>
+					<h3 className="font-display text-2xl text-white">{latestAttempt.headline}</h3>
+					<p className="max-w-2xl text-sm leading-6 text-slate-300">{latestAttempt.detail}</p>
+				</div>
+				<div className="flex flex-wrap gap-2">
+					<OutcomeBadge outcome={latestAttempt.outcome} />
+					<ResultModeBadge attempt={latestAttempt} />
+					<ActionBadge actionType={latestAttempt.actionType} />
+				</div>
+			</div>
+
+			<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+				<MonitorMeta
+					label="HTTP"
+					value={latestAttempt.httpStatus !== null ? String(latestAttempt.httpStatus) : '—'}
+				/>
+				<MonitorMeta label="Modo" value={formatResultModeLabel(latestAttempt)} />
+				<MonitorMeta label="Duração" value={formatDuration(latestAttempt.elapsedMs)} />
+				<MonitorMeta label="Atualizado" value={formatTimestamp(latestAttempt.updatedAt)} />
+			</div>
+
+			<div className="mt-4 rounded-[22px] border border-[color:var(--color-border-faint)] bg-[color:rgba(13,18,28,0.78)] p-4">
+				<p className="text-xs uppercase tracking-[0.22em] text-slate-500">Próximo passo sugerido</p>
+				<p className="mt-2 text-sm leading-6 text-slate-200">{getNextSuggestion(latestAttempt)}</p>
+			</div>
+		</div>
+	)
+}
+
+function CurrentStatusCard({
+	latestAttempt,
+	liveFlow,
+	requestCount,
+}: {
+	latestAttempt: AttemptRecord | undefined
+	liveFlow: LiveFlowState
+	requestCount: number
+}) {
+	const insightTitle = latestAttempt
+		? latestAttempt.headline
+		: liveFlow.isLoading
+			? 'O sistema está trabalhando nesta chave'
+			: 'Ainda não há eventos para interpretar'
+	const insightDescription = latestAttempt
+		? latestAttempt.detail
+		: liveFlow.isLoading
+			? liveFlow.description
+			: 'Assim que você executar um teste, este painel traduz o comportamento da API em uma leitura rápida.'
+
+	return (
+		<div className="space-y-5">
+			<div className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5">
+				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+					<div className="space-y-2">
+						<p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+							Estado atual da chave
+						</p>
+						<h3 className="font-display text-2xl text-slate-50">{liveFlow.title}</h3>
+						<p className="max-w-2xl text-sm leading-6 text-slate-300">{liveFlow.description}</p>
+					</div>
+					<div className="flex flex-wrap gap-2">
+						<StageBadge stage={liveFlow.stage} />
+						{liveFlow.actionType ? <ActionBadge actionType={liveFlow.actionType} /> : null}
+					</div>
+				</div>
+
+				<div className="mt-5">
+					<LifecycleRail stage={liveFlow.stage} />
+				</div>
+
+				<div className="mt-5 grid gap-3 sm:grid-cols-2">
+					<MonitorMeta
+						label="Chave de idempotência"
+						value={liveFlow.idempotencyKey ?? 'Aguardando a próxima requisição'}
+					/>
+					<MonitorMeta
+						label="Progresso"
+						value={`${liveFlow.completedRequests}/${liveFlow.totalRequests || 0} concluídas`}
+					/>
+					<MonitorMeta label="Tentativas observadas" value={String(requestCount)} />
+					<MonitorMeta
+						label="Atualizado"
+						value={liveFlow.updatedAt ? formatTimestamp(liveFlow.updatedAt) : 'Inativo'}
+					/>
+				</div>
+			</div>
+
+			<div className="rounded-[24px] border border-[color:rgba(65,126,56,0.3)] bg-[color:rgba(65,126,56,0.12)] p-5">
+				<p className="text-xs uppercase tracking-[0.24em] text-slate-400">Leitura humana</p>
+				<h3 className="mt-3 font-display text-xl text-white">{insightTitle}</h3>
+				<p className="mt-2 text-sm leading-6 text-slate-200">{insightDescription}</p>
+			</div>
+		</div>
 	)
 }
 
@@ -403,9 +683,13 @@ function JsonPanel({
 
 function Metric({ label, value }: { label: string; value: string }) {
 	return (
-		<div className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] px-4 py-4">
-			<p className="text-xs uppercase tracking-[0.24em] text-slate-500">{label}</p>
-			<p className="mt-3 text-sm leading-6 text-white">{value}</p>
+		<div className="min-w-0 rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] px-4 py-4">
+			<p className="text-[11px] leading-5 font-medium uppercase tracking-[0.18em] text-slate-500">
+				{label}
+			</p>
+			<p className="mt-3 min-w-0 text-base leading-7 font-medium text-white [overflow-wrap:anywhere]">
+				{value}
+			</p>
 		</div>
 	)
 }
@@ -423,7 +707,7 @@ function LifecycleRail({
 	] as const
 
 	return (
-		<div className="grid gap-3 sm:grid-cols-4">
+		<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 			{steps.map((step, index) => {
 				const isActive = stage === step.key
 				const isComplete = isStepComplete(stage, step.key)
@@ -482,16 +766,28 @@ function ScenarioCard({
 		title: string
 	}
 }) {
+	const number = getScenarioNumber(scenario.title)
+	const title = getScenarioTitle(scenario.title)
+
 	return (
 		<article className="rounded-[24px] border border-[color:var(--color-border-soft)] bg-[color:var(--color-panel)] p-5 transition-all duration-300">
-			<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-				<div className="space-y-2">
-					<h3 className="font-display text-xl text-slate-50">{scenario.title}</h3>
-					<p className="text-sm leading-6 text-slate-400">{scenario.description}</p>
+			<div className="flex items-start justify-between gap-3">
+				<div className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--color-border-soft)] bg-[color:var(--color-surface-muted)] text-sm font-semibold text-slate-100">
+					{number}
 				</div>
 				<ScenarioStatusBadge status={scenario.status} />
 			</div>
-			<p className="mt-4 text-sm leading-6 text-slate-200">{scenario.message}</p>
+
+			<h3 className="mt-4 font-display text-xl text-slate-50">{title}</h3>
+			<p className="mt-2 text-sm leading-6 text-slate-400">{scenario.description}</p>
+
+			<div className="mt-4 rounded-[22px] border border-[color:var(--color-border-faint)] bg-[color:rgba(13,18,28,0.78)] p-4">
+				<p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+					O que a interface mostra
+				</p>
+				<p className="mt-2 text-sm leading-6 text-slate-200">{scenario.message}</p>
+			</div>
+
 			<p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">
 				{scenario.observedAt
 					? `Atualizado em ${formatTimestamp(scenario.observedAt)}`
@@ -512,7 +808,7 @@ function AttemptGroupCard({ group }: { group: AttemptGroup }) {
 					<h3 className="break-all font-display text-2xl text-white">{group.idempotencyKey}</h3>
 					<p className="text-sm leading-6 text-slate-400">
 						{group.totalRequests} {group.totalRequests === 1 ? 'requisição' : 'requisições'} •
-						última atualização {formatTimestamp(group.latestAt)}
+						última atividade {formatTimestamp(group.latestAt)}
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
@@ -561,11 +857,11 @@ function AttemptRow({ attempt, defaultOpen }: { attempt: AttemptRecord; defaultO
 						value={attempt.requestId ?? 'Pendente ou indisponível'}
 					/>
 					<HistoryMeta
-						label="Consultas"
+						label="Consultas do cliente"
 						value={
 							attempt.pollCount > 0
-								? `${attempt.pollCount} ${attempt.pollCount === 1 ? 'requisição' : 'requisições'} de acompanhamento`
-								: 'Sem consultas automáticas do cliente'
+								? `${attempt.pollCount} ${attempt.pollCount === 1 ? 'consulta' : 'consultas'}`
+								: 'Nenhuma'
 						}
 					/>
 				</div>
@@ -608,7 +904,7 @@ function HistoryMeta({ label, value }: { label: string; value: string }) {
 	)
 }
 
-function ActionBadge({ actionType }: { actionType: AttemptRecord['actionType'] }) {
+function ActionBadge({ actionType }: { actionType: AttemptActionType }) {
 	return <Badge variant="neutral">{formatActionTypeLabel(actionType)}</Badge>
 }
 
@@ -629,6 +925,10 @@ function OutcomeBadge({ outcome }: { outcome: 'FAILED' | 'IDLE' | 'PENDING' | 'S
 }
 
 function ResultModeBadge({ attempt }: { attempt: AttemptRecord }) {
+	if (attempt.httpStatus === 0) {
+		return <Badge variant="destructive">Falha de conexão</Badge>
+	}
+
 	if (attempt.resultMode === 'REUSED') {
 		return <Badge variant="info">Resultado reutilizado</Badge>
 	}
@@ -674,10 +974,10 @@ function ScenarioStatusBadge({ status }: { status: 'active' | 'idle' | 'observed
 	}
 
 	if (status === 'active') {
-		return <Badge variant="pending">Ativo</Badge>
+		return <Badge variant="pending">Em teste</Badge>
 	}
 
-	return <Badge variant="neutral">Pronto</Badge>
+	return <Badge variant="neutral">Pronto para testar</Badge>
 }
 
 function Spinner() {
@@ -698,12 +998,95 @@ function formatStageLabel(value: string) {
 	)
 }
 
-function formatActionTypeLabel(value: 'CONCURRENT' | 'CREATE' | 'REPLAY') {
+function formatActionTypeLabel(value: AttemptActionType) {
 	return {
 		CONCURRENT: 'CONCORRÊNCIA',
 		CREATE: 'CRIAÇÃO',
 		REPLAY: 'REPETIÇÃO',
 	}[value]
+}
+
+function formatResultModeLabel(attempt: AttemptRecord) {
+	if (attempt.httpStatus === 0) {
+		return 'Falha de conexão'
+	}
+
+	return {
+		FRESH: 'Processado agora',
+		REUSED: 'Resposta armazenada',
+		SHARED: 'Resultado compartilhado',
+		WAITING: 'Aguardando conclusão',
+	}[attempt.resultMode]
+}
+
+function formatMetricTimestamp(value: string) {
+	return new Intl.DateTimeFormat('pt-BR', {
+		day: '2-digit',
+		month: 'short',
+		hour: '2-digit',
+		minute: '2-digit',
+	}).format(new Date(value))
+}
+
+function formatAmountPreview(value: string) {
+	if (!value.trim()) {
+		return 'Não informado'
+	}
+
+	const numericValue = Number(value)
+
+	if (!Number.isFinite(numericValue)) {
+		return 'Valor inválido'
+	}
+
+	return new Intl.NumberFormat('pt-BR', {
+		style: 'currency',
+		currency: 'BRL',
+	}).format(numericValue)
+}
+
+function getNextSuggestion(attempt: AttemptRecord) {
+	if (attempt.httpStatus === 0) {
+		return 'A interface não conseguiu completar a chamada. Verifique se a API está disponível e tente novamente antes de validar os cenários de idempotência.'
+	}
+
+	if (attempt.resultMode === 'SHARED' || attempt.actionType === 'CONCURRENT') {
+		return 'Abra o histórico para comparar as duas tentativas paralelas e confirmar que ambas convergiram para o mesmo desfecho.'
+	}
+
+	if (attempt.resultMode === 'REUSED' && attempt.outcome === 'SUCCESS') {
+		return 'Agora gere uma nova chave se quiser forçar um processamento novo, ou use o histórico para validar que esta resposta veio do armazenamento.'
+	}
+
+	if (attempt.resultMode === 'REUSED' && attempt.outcome === 'FAILED') {
+		return 'Este é o caso clássico de falha persistida. Gere uma nova chave apenas se quiser tentar um processamento totalmente novo.'
+	}
+
+	if (attempt.resultMode === 'WAITING' || attempt.outcome === 'PENDING') {
+		return 'Acompanhe o painel ao vivo: enquanto a chave estiver pendente, novas chamadas com ela podem continuar retornando o estado em andamento.'
+	}
+
+	if (attempt.outcome === 'SUCCESS') {
+		return 'Repita a mesma chave para provar visualmente que a API devolve o SUCESSO persistido sem reprocessamento.'
+	}
+
+	if (attempt.outcome === 'FAILED') {
+		return 'Repita a mesma chave para confirmar que a FALHA também é persistida e não dispara uma nova execução.'
+	}
+
+	return 'Abra o histórico técnico para validar request id, duração e o JSON completo da resposta.'
+}
+
+function getScenarioNumber(title: string) {
+	const match = title.match(/Cenário\s+(\d+)/i)
+
+	return match?.[1] ?? '•'
+}
+
+function getScenarioTitle(title: string) {
+	const parts = title.split('—')
+
+	return parts.length > 1 ? parts.slice(1).join('—').trim() : title
 }
 
 function isStepComplete(
